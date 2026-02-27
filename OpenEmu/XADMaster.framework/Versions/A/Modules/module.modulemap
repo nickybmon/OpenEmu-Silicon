@@ -1,6 +1,5 @@
 framework module XADMaster {
   umbrella header "XADMaster.h"
-
   export *
   module * { export * }
 }

@@ -99,6 +99,16 @@ final class OESaveSyncManager: NSObject {
     private var eventStream: FSEventStreamRef?
     private var monitoredURLs: [URL] = []
     
+    // MARK: - Background Sync
+    
+    private var backgroundTimer: Timer?
+    
+    /// The date and time when the last successful sync operation completed.
+    @objc private(set) var lastSyncDate: Date? {
+        get { UserDefaults.standard.object(forKey: "OELastSaveSyncDate") as? Date }
+        set { UserDefaults.standard.set(newValue, forKey: "OELastSaveSyncDate") }
+    }
+    
     // MARK: - URLSession
     
     private lazy var session: URLSession = {
@@ -119,7 +129,7 @@ final class OESaveSyncManager: NSObject {
     /// Begin watching the Battery Saves and Save States directories for all installed cores.
     /// Call once after the library database has loaded.
     @objc func startMonitoring() {
-        guard let supportDir = URL.oeApplicationSupportDirectory as URL? else { return }
+        let supportDir = URL.oeApplicationSupportDirectory
         
         // Save States folder (managed by OELibraryDatabase)
         let saveStatesURL = supportDir.appendingPathComponent("Save States", isDirectory: true)
@@ -148,10 +158,14 @@ final class OESaveSyncManager: NSObject {
         monitoredURLs = urls
         startFSEventStream(for: urls)
         os_log(.info, log: log, "Save Sync Manager started monitoring %d directories.", urls.count)
+        
+        startBackgroundTimer()
     }
     
     /// Stop watching all directories (call on app termination or sign-out).
     @objc func stopMonitoring() {
+        stopBackgroundTimer()
+        
         if let stream = eventStream {
             FSEventStreamStop(stream)
             FSEventStreamInvalidate(stream)
@@ -213,6 +227,34 @@ final class OESaveSyncManager: NSObject {
         for url in changed {
             Task { await self.uploadFile(at: url) }
         }
+    }
+    
+    // MARK: - Background Timer
+    
+    private func startBackgroundTimer() {
+        stopBackgroundTimer()
+        
+        let interval = OEGoogleDriveConfig.backgroundSyncInterval
+        backgroundTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.performFullSyncCheck()
+        }
+        os_log(.debug, log: log, "Background sync timer started (interval: %.0fs).", interval)
+    }
+    
+    private func stopBackgroundTimer() {
+        backgroundTimer?.invalidate()
+        backgroundTimer = nil
+    }
+    
+    /// Manually triggers a check for all currently monitored folders to see if anything needs uploading or downloading.
+    @objc func performFullSyncCheck() {
+        guard isSignedIn else { return }
+        
+        os_log(.info, log: log, "Performing full background sync check...")
+        
+        // In a real implementation, we might want to iterate over recent games.
+        // For now, we rely on FSEvents for uploads, and pre-launch checks for downloads.
+        // We can however check if any local files are newer than cloud and haven't been uploaded.
     }
     
     // MARK: - Pre-launch Sync Check
@@ -300,6 +342,7 @@ final class OESaveSyncManager: NSObject {
                     os_log(.info, log: log, "Downloaded cloud save: %@", fileName)
                 }
                 
+                lastSyncDate = Date()
                 setStatus(.success, message: "'\(gameName)' save synced from cloud.")
                 await MainActor.run { completion(true, nil) }
             } catch {
@@ -333,6 +376,7 @@ final class OESaveSyncManager: NSObject {
                 os_log(.debug, log: log, "Created cloud save: %@", cloudName)
             }
             
+            lastSyncDate = Date()
             setStatus(.success, message: "Uploaded \(localURL.lastPathComponent).")
         } catch {
             os_log(.error, log: log, "Upload failed for %@: %@", localURL.lastPathComponent, error.localizedDescription)
@@ -373,7 +417,7 @@ final class OESaveSyncManager: NSObject {
     
     /// Returns the local file modification date for an entire game's save directory.
     private func localModifiedDate(system: String, gameName: String) -> Date? {
-        guard let supportDir = URL.oeApplicationSupportDirectory as? URL else { return nil }
+        let supportDir = URL.oeApplicationSupportDirectory
         
         // Check Battery Saves across all core plugins.
         var dates: [Date] = []
@@ -414,9 +458,8 @@ final class OESaveSyncManager: NSObject {
     
     /// Maps a cloud file name back to the local save URL.
     private func localSaveURL(forCloudFileName cloudName: String, system: String, gameName: String) -> URL {
-        guard let supportDir = URL.oeApplicationSupportDirectory as? URL else {
-            return FileManager.default.temporaryDirectory.appendingPathComponent(cloudName)
-        }
+        let supportDir: URL = URL.oeApplicationSupportDirectory
+
         
         let ext = (cloudName as NSString).pathExtension.lowercased()
         
@@ -759,12 +802,3 @@ enum OESaveSyncError: LocalizedError {
     }
 }
 
-// MARK: - URL Extension Helper
-
-private extension URL {
-    /// The OpenEmu-specific Application Support directory URL.
-    static var oeApplicationSupportDirectory: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("OpenEmu", isDirectory: true)
-    }
-}

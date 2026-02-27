@@ -805,13 +805,6 @@
 			remoteGlobalIDString = 011FD36125267910006D7C05;
 			remoteInfo = "Build Experimental SystemPlugins";
 		};
-		012148232537D7F2007F3C84 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2A37F4A9FDCFA73011CA2CEA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 012148042537C6D6007F3C84;
-			remoteInfo = OESystemPluginPostInstall;
-		};
 		012148252537D7FD007F3C84 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 2A37F4A9FDCFA73011CA2CEA /* Project object */;
@@ -847,33 +840,12 @@
 			remoteGlobalIDString = 8D15AC270486D014006FF6A4;
 			remoteInfo = OpenEmu;
 		};
-		0547FE1D24E86D9F005C1FFC /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2A37F4A9FDCFA73011CA2CEA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0547FE1324E86D9F005C1FFC;
-			remoteInfo = broker;
-		};
 		05DB72A62532681B0098459D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 2A37F4A9FDCFA73011CA2CEA /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 8D15AC270486D014006FF6A4;
 			remoteInfo = OpenEmu;
-		};
-		1B6A25011430F8FB009F1CE1 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2A37F4A9FDCFA73011CA2CEA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 83F37141140BB166005A7353;
-			remoteInfo = "Build SystemPlugins";
-		};
-		3DAA589914464890001C09A8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 2A37F4A9FDCFA73011CA2CEA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 1BEF2A9311682A530090F72B;
-			remoteInfo = OpenEmuHelperApp;
 		};
 		820EB7621483FBEF008EC398 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -4723,13 +4695,10 @@
 			buildRules = (
 			);
 			dependencies = (
-				012148242537D7F2007F3C84 /* PBXTargetDependency */,
 				8309A781166CE6360013AD4A /* PBXTargetDependency */,
-				3DAA589A14464890001C09A8 /* PBXTargetDependency */,
-				1B6A25021430F8FB009F1CE1 /* PBXTargetDependency */,
-				0547FE1E24E86D9F005C1FFC /* PBXTargetDependency */,
 				8F94DEC5250EC701003A1F33 /* PBXTargetDependency */,
 				8F94DEDB250ED838003A1F33 /* PBXTargetDependency */,
+				012148262537D7FD007F3C84 /* PBXTargetDependency */,
 			);
 			name = OpenEmu;
 			packageProductDependencies = (
@@ -6877,11 +6846,6 @@
 			target = 011FD36125267910006D7C05 /* Build Experimental SystemPlugins */;
 			targetProxy = 011FD37B252679E9006D7C05 /* PBXContainerItemProxy */;
 		};
-		012148242537D7F2007F3C84 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 012148042537C6D6007F3C84 /* OESystemPluginPostInstall */;
-			targetProxy = 012148232537D7F2007F3C84 /* PBXContainerItemProxy */;
-		};
 		012148262537D7FD007F3C84 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 012148042537C6D6007F3C84 /* OESystemPluginPostInstall */;
@@ -6907,25 +6871,10 @@
 			target = 8D15AC270486D014006FF6A4 /* OpenEmu */;
 			targetProxy = 01853AC423C0FB5F00619549 /* PBXContainerItemProxy */;
 		};
-		0547FE1E24E86D9F005C1FFC /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0547FE1324E86D9F005C1FFC /* broker */;
-			targetProxy = 0547FE1D24E86D9F005C1FFC /* PBXContainerItemProxy */;
-		};
 		05DB72A72532681B0098459D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 8D15AC270486D014006FF6A4 /* OpenEmu */;
 			targetProxy = 05DB72A62532681B0098459D /* PBXContainerItemProxy */;
-		};
-		1B6A25021430F8FB009F1CE1 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 83F37141140BB166005A7353 /* Build SystemPlugins */;
-			targetProxy = 1B6A25011430F8FB009F1CE1 /* PBXContainerItemProxy */;
-		};
-		3DAA589A14464890001C09A8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 1BEF2A9311682A530090F72B /* OpenEmuHelperApp */;
-			targetProxy = 3DAA589914464890001C09A8 /* PBXContainerItemProxy */;
 		};
 		820EB7631483FBEF008EC398 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

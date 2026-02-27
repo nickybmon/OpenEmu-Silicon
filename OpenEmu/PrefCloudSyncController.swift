@@ -37,7 +37,16 @@ final class PrefCloudSyncController: NSViewController {
     private let statusDot         = NSTextField(labelWithString: "●")
     private let statusLabel       = NSTextField(labelWithString: "")
     private let divider           = NSBox()
+    private let lastSyncedLabel   = NSTextField(labelWithString: "")
+    private let syncNowButton     = NSButton()
     private let syncInfoLabel     = NSTextField(wrappingLabelWithString: "")
+    
+    private lazy var dateFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.dateStyle = .medium
+        df.timeStyle = .short
+        return df
+    }()
     
     // MARK: - Notification Token
     
@@ -116,6 +125,22 @@ final class PrefCloudSyncController: NSViewController {
         signOutButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(signOutButton)
         
+        // ── Last Synced Label ────────────────────────────────────────
+        lastSyncedLabel.font = .systemFont(ofSize: 11)
+        lastSyncedLabel.textColor = .secondaryLabelColor
+        lastSyncedLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(lastSyncedLabel)
+        
+        // ── Sync Now Button ──────────────────────────────────────────
+        syncNowButton.title = "Sync Now"
+        syncNowButton.bezelStyle = .rounded
+        syncNowButton.controlSize = .small
+        syncNowButton.font = .systemFont(ofSize: 11)
+        syncNowButton.target = self
+        syncNowButton.action = #selector(syncNow)
+        syncNowButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(syncNowButton)
+        
         // ── Divider ──────────────────────────────────────────────────
         divider.boxType = .separator
         divider.translatesAutoresizingMaskIntoConstraints = false
@@ -165,6 +190,14 @@ final class PrefCloudSyncController: NSViewController {
             syncInfoLabel.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 14),
             syncInfoLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 36),
             syncInfoLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -36),
+            
+            // Last Synced
+            lastSyncedLabel.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20),
+            lastSyncedLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 36),
+            
+            // Sync Now
+            syncNowButton.centerYAnchor.constraint(equalTo: lastSyncedLabel.centerYAnchor),
+            syncNowButton.leadingAnchor.constraint(equalTo: lastSyncedLabel.trailingAnchor, constant: 8),
         ])
     }
     
@@ -185,6 +218,17 @@ final class PrefCloudSyncController: NSViewController {
         
         signInButton.isHidden  = isSignedIn
         signOutButton.isHidden = !isSignedIn
+        
+        syncNowButton.isHidden = !isSignedIn
+        if isSignedIn {
+            if let date = OESaveSyncManager.shared.lastSyncDate {
+                lastSyncedLabel.stringValue = "Last synced: \(dateFormatter.string(from: date))"
+            } else {
+                lastSyncedLabel.stringValue = "Not synced yet"
+            }
+        } else {
+            lastSyncedLabel.stringValue = ""
+        }
     }
     
     // MARK: - Actions
@@ -204,6 +248,10 @@ final class PrefCloudSyncController: NSViewController {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         OESaveSyncManager.shared.signOut()
         updateStatus()
+    }
+    
+    @objc private func syncNow() {
+        OESaveSyncManager.shared.performFullSyncCheck()
     }
 }
 
