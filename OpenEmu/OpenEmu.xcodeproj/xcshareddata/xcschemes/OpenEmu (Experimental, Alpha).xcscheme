@@ -57,7 +57,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8D15AC270486D014006FF6A4"
-               BuildableName = "OpenEmu.app"
+               BuildableName = "OpenEmuARM64.app"
                BlueprintName = "OpenEmu"
                ReferencedContainer = "container:OpenEmu.xcodeproj">
             </BuildableReference>
@@ -87,7 +87,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8D15AC270486D014006FF6A4"
-            BuildableName = "OpenEmu.app"
+            BuildableName = "OpenEmuARM64.app"
             BlueprintName = "OpenEmu"
             ReferencedContainer = "container:OpenEmu.xcodeproj">
          </BuildableReference>
@@ -113,7 +113,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8D15AC270486D014006FF6A4"
-            BuildableName = "OpenEmu.app"
+            BuildableName = "OpenEmuARM64.app"
             BlueprintName = "OpenEmu"
             ReferencedContainer = "container:OpenEmu.xcodeproj">
          </BuildableReference>
@@ -145,7 +145,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8D15AC270486D014006FF6A4"
-            BuildableName = "OpenEmu.app"
+            BuildableName = "OpenEmuARM64.app"
             BlueprintName = "OpenEmu"
             ReferencedContainer = "container:OpenEmu.xcodeproj">
          </BuildableReference>
