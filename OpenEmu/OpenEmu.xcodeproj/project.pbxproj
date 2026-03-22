@@ -8464,6 +8464,7 @@
 					"~/Library/Frameworks",
 					"@executable_path/../Frameworks",
 				);
+				CODE_SIGN_ENTITLEMENTS = OpenEmu.entitlements;
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.openemu.$(PRODUCT_NAME:identifier)";
 				PRODUCT_NAME = OpenEmuARM64;
@@ -8501,6 +8502,7 @@
 					"~/Library/Frameworks",
 					"@executable_path/../Frameworks",
 				);
+				CODE_SIGN_ENTITLEMENTS = OpenEmu.entitlements;
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.openemu.$(PRODUCT_NAME:identifier)";
 				PRODUCT_NAME = OpenEmuARM64;

@@ -138,7 +138,9 @@ extension CoreDownload: URLSessionDownloadDelegate {
         let fullPluginURL = coresFolder.appendingPathComponent(fileName)
         
         DLog("Core (\(bundleIdentifier)) extracted to application support folder.")
-        
+
+        adHocSign(fullPluginURL)
+
         guard let plugin = OECorePlugin.corePlugin(bundleAtURL: fullPluginURL) else {
             return assertionFailure()
         }
@@ -152,6 +154,30 @@ extension CoreDownload: URLSessionDownloadDelegate {
         }
         else if canBeInstalled {
             updateProperties(with: plugin)
+        }
+    }
+}
+
+// MARK: - Signing
+
+extension CoreDownload {
+
+    /// Ad-hoc signs the plugin bundle so macOS 26+ will load it.
+    /// Downloaded cores arrive unsigned; the OS refuses to dlopen them even
+    /// with disable-library-validation unless they carry at least an ad-hoc signature.
+    private func adHocSign(_ bundleURL: URL) {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        task.arguments = ["--force", "--sign", "-", bundleURL.path]
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+            if task.terminationStatus != 0 {
+                DLog("codesign exited with status \(task.terminationStatus) for \(bundleURL.lastPathComponent)")
+            }
+        } catch {
+            DLog("Failed to run codesign for \(bundleURL.lastPathComponent): \(error)")
         }
     }
 }
