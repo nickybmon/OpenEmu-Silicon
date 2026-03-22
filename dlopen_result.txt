@@ -1,4 +1,0 @@
-Attempting to dlopen: Build/OpenEmu.app/Contents/PlugIns/Cores/VICE.oecoreplugin/Contents/MacOS/VICE
-SUCCESS: Loaded bundle.
-SUCCESS: Found class 'VICEGameCore'
-SUCCESS: Found class 'OEGameCoreController'
