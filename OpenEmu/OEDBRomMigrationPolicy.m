@@ -26,7 +26,7 @@
 
 #import "OEDBRomMigrationPolicy.h"
 @import XADMaster.XADArchive;
-#import "OpenEmuARM64-Swift.h"
+#import "OpenEmu-Swift.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

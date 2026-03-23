@@ -29,7 +29,7 @@
 #import <objc/message.h>
 
 #import "OEDBImageMigrationPolicy.h"
-#import "OpenEmuARM64-Swift.h"
+#import "OpenEmu-Swift.h"
 
 @interface _OEMigrator : NSObject
 {

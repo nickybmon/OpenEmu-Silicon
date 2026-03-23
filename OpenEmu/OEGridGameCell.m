@@ -12,7 +12,7 @@
 
 #import "IKImageBrowserCell.h"
 
-#import "OpenEmuARM64-Swift.h"
+#import "OpenEmu-Swift.h"
 
 static const CGFloat OEGridCellTitleHeight                      = 16.0; // Height of the title view
 static const CGFloat OEGridCellImageTitleSpacing                = 17.0; // Space between the image and the title

@@ -25,7 +25,7 @@
  */
 
 #import "OEDBSaveStateMigrationPolicy.h"
-#import "OpenEmuARM64-Swift.h"
+#import "OpenEmu-Swift.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

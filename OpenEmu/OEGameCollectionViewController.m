@@ -28,7 +28,7 @@
 
 #import "OEAlert.h"
 
-#import "OpenEmuARM64-Swift.h"
+#import "OpenEmu-Swift.h"
 
 NSNotificationName const OEGameCollectionViewControllerDidSetSelectionIndexesNotification = @"OEGameCollectionViewControllerDidSetSelectionIndexesNotification";
 

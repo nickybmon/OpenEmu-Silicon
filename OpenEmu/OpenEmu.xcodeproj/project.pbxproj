@@ -1107,7 +1107,7 @@
 		01607FCC25388361006FCBC8 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = OpenEmuARM64.app/Contents/PlugIns/Systems;
+			dstPath = OpenEmu.app/Contents/PlugIns/Systems;
 			dstSubfolderSpec = 16;
 			files = (
 				01607FD625388361006FCBC8 /* Arcade.oesystemplugin in CopyFiles */,
@@ -1226,7 +1226,7 @@
 		94EBBCFB183F42CE00743756 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = OpenEmuARM64.app/Contents/PlugIns/Systems;
+			dstPath = OpenEmu.app/Contents/PlugIns/Systems;
 			dstSubfolderSpec = 16;
 			files = (
 				87FBC0A81C07A22700AECF5A /* Atari 8bit.oesystemplugin in CopyFiles */,
@@ -1624,7 +1624,7 @@
 		87FBC0A51C07996B00AECF5A /* Controller-Mappings.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Controller-Mappings.plist"; sourceTree = "<group>"; };
 		8CBD3AA017D23AA80022399B /* OEGridGameCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OEGridGameCell.h; sourceTree = "<group>"; };
 		8CBD3AA117D23AA80022399B /* OEGridGameCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OEGridGameCell.m; sourceTree = "<group>"; };
-		8D15AC370486D014006FF6A4 /* OpenEmuARM64.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenEmuARM64.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8D15AC370486D014006FF6A4 /* OpenEmu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenEmu.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F057161254E7EA5003B36FD /* en */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		8F071F381C25534E007B76DA /* Preferences.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = Preferences.xib; sourceTree = "<group>"; };
 		8F071F3A1C255362007B76DA /* Credits.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
@@ -2707,7 +2707,7 @@
 		19C28FB0FE9D524F11CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8D15AC370486D014006FF6A4 /* OpenEmuARM64.app */,
+				8D15AC370486D014006FF6A4 /* OpenEmu.app */,
 				3887A7F61024D1F9000FC4CF /* OESaveStateQLPlugin.qlgenerator */,
 				1BEF2A9411682A530090F72B /* OpenEmuHelperApp */,
 				C671180F136368330034379A /* SegaMasterSystem.oesystemplugin */,
@@ -4708,7 +4708,7 @@
 			);
 			productInstallPath = "$(HOME)/Applications";
 			productName = OpenEmu;
-			productReference = 8D15AC370486D014006FF6A4 /* OpenEmuARM64.app */;
+			productReference = 8D15AC370486D014006FF6A4 /* OpenEmu.app */;
 			productType = "com.apple.product-type.application";
 		};
 		8F7C2947288A2A2200A16C09 /* OECoreListUpdater */ = {
@@ -6033,7 +6033,7 @@
 			);
 			inputPaths = (
 				"$(BUILT_PRODUCTS_DIR)/OESystemPluginPostInstall",
-				"$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/Info.plist",
+				"$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/Info.plist",
 			);
 			name = "Update Info.plist File Types";
 			outputFileListPaths = (
@@ -6042,7 +6042,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${BUILT_PRODUCTS_DIR}/OESystemPluginPostInstall\" \"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app\"\n";
+			shellScript = "\"${BUILT_PRODUCTS_DIR}/OESystemPluginPostInstall\" \"${BUILT_PRODUCTS_DIR}/OpenEmu.app\"\n";
 		};
 		0121480E2537D541007F3C84 /* Update Info.plist File Types */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -6053,7 +6053,7 @@
 			);
 			inputPaths = (
 				"$(BUILT_PRODUCTS_DIR)/OESystemPluginPostInstall",
-				"$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/Info.plist",
+				"$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/Info.plist",
 			);
 			name = "Update Info.plist File Types";
 			outputFileListPaths = (
@@ -6062,7 +6062,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${BUILT_PRODUCTS_DIR}/OESystemPluginPostInstall\" \"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app\"\n";
+			shellScript = "\"${BUILT_PRODUCTS_DIR}/OESystemPluginPostInstall\" \"${BUILT_PRODUCTS_DIR}/OpenEmu.app\"\n";
 		};
 		01607FD725388361006FCBC8 /* Update Info.plist File Types */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -6073,7 +6073,7 @@
 			);
 			inputPaths = (
 				"$(BUILT_PRODUCTS_DIR)/OESystemPluginPostInstall",
-				"$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/Info.plist",
+				"$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/Info.plist",
 			);
 			name = "Update Info.plist File Types";
 			outputFileListPaths = (
@@ -6082,7 +6082,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${BUILT_PRODUCTS_DIR}/OESystemPluginPostInstall\" \"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app\"\n";
+			shellScript = "\"${BUILT_PRODUCTS_DIR}/OESystemPluginPostInstall\" \"${BUILT_PRODUCTS_DIR}/OpenEmu.app\"\n";
 		};
 		01E85CBD25389A3700980F83 /* Set Experimental Appcast URLs */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -6092,7 +6092,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/Info.plist",
+				"$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/Info.plist",
 			);
 			name = "Set Experimental Appcast URLs";
 			outputFileListPaths = (
@@ -6101,7 +6101,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# For Build All + Experimental scheme, tell Sparkle where to find experimental app and cores\n/usr/libexec/PlistBuddy -c \"Set :OECoreListURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/oecores-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app/Contents/Info.plist\"\n\n/usr/libexec/PlistBuddy -c \"Set :SUFeedURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/appcast-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app/Contents/Info.plist\"\n";
+			shellScript = "# For Build All + Experimental scheme, tell Sparkle where to find experimental app and cores\n/usr/libexec/PlistBuddy -c \"Set :OECoreListURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/oecores-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmu.app/Contents/Info.plist\"\n\n/usr/libexec/PlistBuddy -c \"Set :SUFeedURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/appcast-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmu.app/Contents/Info.plist\"\n";
 		};
 		01E85CBE25389A8000980F83 /* Set Experimental Appcast URLs */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -6111,7 +6111,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/Info.plist",
+				"$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/Info.plist",
 			);
 			name = "Set Experimental Appcast URLs";
 			outputFileListPaths = (
@@ -6120,7 +6120,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# For Build All + Experimental scheme, tell Sparkle where to find experimental app and cores\n/usr/libexec/PlistBuddy -c \"Set :OECoreListURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/oecores-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app/Contents/Info.plist\"\n\n/usr/libexec/PlistBuddy -c \"Set :SUFeedURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/appcast-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app/Contents/Info.plist\"\n";
+			shellScript = "# For Build All + Experimental scheme, tell Sparkle where to find experimental app and cores\n/usr/libexec/PlistBuddy -c \"Set :OECoreListURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/oecores-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmu.app/Contents/Info.plist\"\n\n/usr/libexec/PlistBuddy -c \"Set :SUFeedURL https://raw.github.com/OpenEmu/OpenEmu-Update/master/appcast-experimental.xml\" \"${BUILT_PRODUCTS_DIR}/OpenEmu.app/Contents/Info.plist\"\n";
 		};
 		37C80308101564B000356EF3 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -6144,7 +6144,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/Info.plist",
+				"$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/Info.plist",
 			);
 			name = "Update Info.plist Build Version";
 			outputFileListPaths = (
@@ -6153,7 +6153,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Define OEBuildVersion with git revision and build configuration\ngitBundle=`which git`\ngitLastTag=`${gitBundle} describe --abbrev=0 --tags`\ngitNumCommitsToLastTag=`${gitBundle} rev-list --count ${gitLastTag}`\ngitNumCommitsSinceLastTag=`${gitBundle} rev-list --count ${gitLastTag}..`\ngitCommitSha=`${gitBundle} rev-parse --short HEAD`\nbundleConfiguration=\"$CONFIGURATION\"\nbuildRef=\"${gitNumCommitsToLastTag}.${gitNumCommitsSinceLastTag}-g${gitCommitSha}-${bundleConfiguration}\"\n\nlongBuildRef=`${gitBundle} rev-parse --verify HEAD`\n\ninfoplistFile=\"${BUILT_PRODUCTS_DIR}/OpenEmuARM64.app/Contents/Info.plist\"\n/usr/libexec/PlistBuddy -c \"Set :OEBuildVersion $buildRef\" \"$infoplistFile\"\n/usr/libexec/PlistBuddy -c \"Set :OELongBuildVersion $longBuildRef\" \"$infoplistFile\"\n";
+			shellScript = "# Define OEBuildVersion with git revision and build configuration\ngitBundle=`which git`\ngitLastTag=`${gitBundle} describe --abbrev=0 --tags`\ngitNumCommitsToLastTag=`${gitBundle} rev-list --count ${gitLastTag}`\ngitNumCommitsSinceLastTag=`${gitBundle} rev-list --count ${gitLastTag}..`\ngitCommitSha=`${gitBundle} rev-parse --short HEAD`\nbundleConfiguration=\"$CONFIGURATION\"\nbuildRef=\"${gitNumCommitsToLastTag}.${gitNumCommitsSinceLastTag}-g${gitCommitSha}-${bundleConfiguration}\"\n\nlongBuildRef=`${gitBundle} rev-parse --verify HEAD`\n\ninfoplistFile=\"${BUILT_PRODUCTS_DIR}/OpenEmu.app/Contents/Info.plist\"\n/usr/libexec/PlistBuddy -c \"Set :OEBuildVersion $buildRef\" \"$infoplistFile\"\n/usr/libexec/PlistBuddy -c \"Set :OELongBuildVersion $longBuildRef\" \"$infoplistFile\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -7464,7 +7464,7 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenEmuTests/OpenEmuTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/MacOS/OpenEmuARM64";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/MacOS/OpenEmu";
 			};
 			name = Debug;
 		};
@@ -7495,7 +7495,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenEmuTests/OpenEmuTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenEmuARM64.app/Contents/MacOS/OpenEmuARM64";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpenEmu.app/Contents/MacOS/OpenEmu";
 			};
 			name = Release;
 		};
@@ -8467,7 +8467,7 @@
 				CODE_SIGN_ENTITLEMENTS = OpenEmu.entitlements;
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.openemu.$(PRODUCT_NAME:identifier)";
-				PRODUCT_NAME = OpenEmuARM64;
+				PRODUCT_NAME = OpenEmu;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenEmu-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -8505,7 +8505,7 @@
 				CODE_SIGN_ENTITLEMENTS = OpenEmu.entitlements;
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.openemu.$(PRODUCT_NAME:identifier)";
-				PRODUCT_NAME = OpenEmuARM64;
+				PRODUCT_NAME = OpenEmu;
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenEmu-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 			};
