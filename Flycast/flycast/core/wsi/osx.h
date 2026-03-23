@@ -19,10 +19,16 @@
     along with Flycast.  If not, see <https://www.gnu.org/licenses/>.
 */
 #pragma once
-#if defined(TARGET_IPHONE)
+#if defined(TARGET_IPHONE) || defined(TARGET_MAC)
 #include "gl_context.h"
+#if defined(TARGET_MAC)
+// macOS desktop OpenGL 3 (OpenGLES headers don't exist on macOS)
+#include <OpenGL/gl3.h>
+#include <OpenGL/gl3ext.h>
+#else
 #include <OpenGLES/ES3/gl.h>
 #include <OpenGLES/ES3/glext.h>
+#endif
 
 class OSXGraphicsContext : public GLGraphicsContext
 {
