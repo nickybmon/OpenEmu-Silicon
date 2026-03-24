@@ -98,6 +98,22 @@
   </core>
 
   <!--
+    🚫 Arcade / MAME — openemu.system.arcade
+    The Arcade system plugin (UI layer) exists at OpenEmu/SystemPlugins/Arcade/ and is fully
+    configured with controller mappings, file types (.zip, .7z, .chd, .bin, .rom), and 8-player
+    support. However, there is NO MAME emulation core in this project.
+
+    This is why users see a greyed-out Arcade entry in Settings → Cores with nothing to select.
+
+    A MAME core would need to:
+      - Subclass OEGameCore and implement OEArcadeSystemResponderClient
+      - Compile MAME (modern versions support ARM64/AArch64 natively)
+      - Register here under openemu.system.arcade
+
+    Tracking issue: https://github.com/chris-p-bacon-sudo/openemu-silicon/issues/25
+  -->
+
+  <!--
     The following cores are x86_64 only in the official OpenEmu releases.
     They require ARM64 builds to be hosted before they can be re-enabled here.
     Tracking issue: https://github.com/bazley82/OpenEmuARM64/issues

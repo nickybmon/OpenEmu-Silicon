@@ -462,22 +462,42 @@ class AppDelegate: NSObject {
             return
         }
         #endif
+
+        // Suppress the alert if the user has already dismissed it this session.
+        let suppressionKey = "OEInputMonitoringAlertSuppressed"
+        if UserDefaults.standard.bool(forKey: suppressionKey) {
+            return
+        }
+
         let alert = OEAlert()
         alert.messageText = NSLocalizedString("ALERT_INPUT_MONITORING_HEADLINE", comment:"Headline for Input Monitoring permissions")
         var informativeText = NSLocalizedString("ALERT_INPUT_MONITORING_PART1", comment:"Message for Input Monitoring permissions")
         informativeText += "\n\n"
-        if #available(macOS 12.0, *) {
+        if #available(macOS 26, *) {
+            informativeText += NSLocalizedString("ALERT_INPUT_MONITORING_PART2_TAHOE", comment:"Message for Input Monitoring permissions on macOS 26+")
+        } else if #available(macOS 12.0, *) {
             informativeText += NSLocalizedString("ALERT_INPUT_MONITORING_PART2_MONTEREY", comment:"Message for Input Monitoring permissions")
         } else {
             informativeText += NSLocalizedString("ALERT_INPUT_MONITORING_PART2", comment:"Message for Input Monitoring permissions")
         }
         alert.informativeText = informativeText
-        alert.defaultButtonTitle = NSLocalizedString("Open System Preferences", comment:"")
+
+        if #available(macOS 13.0, *) {
+            alert.defaultButtonTitle = NSLocalizedString("Open System Settings", comment:"Button to open System Settings for Input Monitoring permission")
+        } else {
+            alert.defaultButtonTitle = NSLocalizedString("Open System Preferences", comment:"Button to open System Preferences for Input Monitoring permission")
+        }
         alert.alternateButtonTitle = NSLocalizedString("Ignore", comment: "")
+
+        UserDefaults.standard.set(true, forKey: suppressionKey)
 
         let res = alert.runModal()
         if res == .alertFirstButtonReturn {
-            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!)
+            if #available(macOS 13.0, *) {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ListenEvent")!)
+            } else {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!)
+            }
         }
     }
     
