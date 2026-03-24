@@ -88,3 +88,6 @@
 [submodule "picodrive"]
 	path = picodrive
 	url = ../../OpenEmu/picodrive.git
+[submodule "Frodo-Core"]
+	path = Frodo-Core
+	url = ../../OpenEmu/Frodo-Core.git
