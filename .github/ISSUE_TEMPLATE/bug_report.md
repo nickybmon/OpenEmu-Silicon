@@ -1,36 +1,41 @@
 ---
 name: Bug report
-about: Report a reproducible problem with OpenEmu to help us resolve it
-title: ''
-labels: ''
+about: Something isn't working right? Let us know — we want to fix it.
+title: '[Bug] '
+labels: bug
 assignees: ''
 
 ---
 
-Summary of issue
+Thanks for taking the time to report this — it genuinely helps. The more detail you can share, the easier it is to track down.
 
-Read https://github.com/OpenEmu/OpenEmu/wiki/Troubleshooting:-Reporting-problems
+## What happened?
 
-# Steps to reproduce
+<!-- Describe the problem in plain language. What did you see? What went wrong? -->
 
-1. Describe step-by-step
-1. How to cause the problem
-1. leaving nothing out
-1. too much information is better than too little
+## What did you expect to happen?
 
-# Expected Behavior
+<!-- What should have happened instead? -->
 
-1. Describe what
-1. you want to
-1. happen
+## Steps to reproduce
 
-# Observed Behavior
+1.
+2.
+3.
 
-1. Describe what you see
-1. Actually happen
-1. when you follow the steps above
+<!-- Be as specific as you can — which game, which menu, which action. "It crashed" is a start; "it crashed when I loaded Ocarina of Time and tried to open the save state menu" is much more helpful. -->
 
-# Debugging Information
+## System info
 
-- OpenEmu Version: ???
-- macOS Version: ???
+- **macOS version:** (e.g. macOS Sequoia 15.3)
+- **Mac chip model:** (e.g. M1 Pro, M2, M4 Max)
+- **OpenEmu-Silicon version or commit:** (check the About screen or the release tag you downloaded)
+
+## Which game and core had the problem?
+
+- **Game:** (e.g. Super Mario World)
+- **System / Core:** (e.g. SNES / BSNES, or N64 / Mupen64Plus)
+
+## Anything else?
+
+<!-- Screenshots, crash logs, Console.app output — anything that might help. If you saw an error message, paste it here. -->
