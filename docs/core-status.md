@@ -1,6 +1,6 @@
 # Core Status — OpenEmuARM64
 
-_Last audited: 2026-03-22_
+_Last audited: 2026-03-23_
 
 This document tracks the status of every emulator core in the repo — whether it's installed, which systems it covers, and what's missing or broken.
 
@@ -78,15 +78,15 @@ These directories exist but contain no Xcode project or build artifacts — they
 
 ## Systems With No Core (Not in This Fork)
 
-These systems were never supported by OpenEmu / this fork and would require integrating a new core from scratch.
+These systems were never supported by OpenEmu / this fork and would require integrating a new core from scratch. PSP, Nintendo DS, and GameCube have active roadmap plans — see [`docs/roadmap.md`](roadmap.md).
 
-| System | Core Candidate | Notes |
-|--------|---------------|-------|
-| Nintendo GameCube | Dolphin | Dolphin is complex to embed; no precedent in OpenEmu ecosystem |
-| Nintendo DS (working) | melonDS | DeSmuME port is dead; melonDS would be the modern alternative |
-| Sony PSP | PPSSPP | Never in OpenEmu; significant integration work required |
-| Nintendo 64 (working) | Mupen64Plus or ParaLLEl | Mupen64Plus is in the repo (see above) but unbuilt |
-| Game Boy Color (working) | mGBA or Gambatte | See Known Issues — may just be a plist identifier problem |
+| System | Core Candidate | Roadmap Status | Notes |
+|--------|---------------|----------------|-------|
+| Sony PSP | PPSSPP-Core | **Phase 1** — Revival; official OE wrapper exists | See `docs/roadmap.md` |
+| Nintendo DS | melonDS | **Phase 2** — Greenfield wrapper; DeSmuME is dead | See `docs/roadmap.md` |
+| Nintendo GameCube | Dolphin | **Phase 3** — Community fork; high complexity | See `docs/roadmap.md` |
+| Nintendo 64 (working) | Mupen64Plus or ParaLLEl | Not planned | Mupen64Plus is in the repo (see above) but unbuilt |
+| Game Boy Color (working) | mGBA or Gambatte | Not planned | See Known Issues — may just be a plist identifier problem |
 
 ---
 
@@ -132,13 +132,13 @@ GBC games may work at runtime if the cores handle them transparently, but they w
 | Game Boy | ✅ Gambatte |
 | Game Boy Advance | ✅ mGBA |
 | Game Boy Color | ⚠️ Likely works via Gambatte/mGBA, not declared in plist |
-| GameCube | ❌ No core exists in this fork |
+| GameCube | ❌ No core — roadmap Phase 3 (Dolphin) |
 | Intellivision | ✅ Bliss |
 | MSX | ✅ blueMSX |
 | Neo Geo Pocket | ✅ Mednafen |
 | NES | ✅ Nestopia / FCEU |
 | Nintendo 64 | ⚠️ Mupen64Plus in repo, not built |
-| Nintendo DS | ❌ DeSmuME source only, no build |
+| Nintendo DS | ❌ DeSmuME abandoned — roadmap Phase 2 (melonDS) |
 | Odyssey² | ✅ O2EM |
 | PC Engine / TurboGrafx-16 | ✅ Mednafen |
 | PC-FX | ✅ Mednafen |
@@ -153,7 +153,7 @@ GBC games may work at runtime if the cores handle them transparently, but they w
 | SG-1000 | ✅ GenesisPlus / CrabEmu |
 | SNES | ✅ SNES9x |
 | SNES (accuracy) | ⚠️ BSNES built, not installed |
-| Sony PSP | ❌ No core exists in this fork |
+| Sony PSP | ❌ No core — roadmap Phase 1 (PPSSPP-Core) |
 | Vectrex | ✅ VecXGL |
 | Virtual Boy | ✅ Mednafen |
 | Watara Supervision | ⚠️ Potator-Core in repo, not built |
