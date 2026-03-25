@@ -444,13 +444,25 @@ class AppDelegate: NSObject {
         if #available(macOS 10.15, *) {
             switch dm.accessType {
             case .unknown:
-                dm.requestAccess()
-                
+                // TCC may return "unknown" on subsequent launches when the app lacks a
+                // stable Developer ID signature, even though the user already granted
+                // access. Avoid re-prompting if we recorded a prior grant — the
+                // permission is still in effect even if IOHIDCheckAccess can't confirm it.
+                let previouslyGrantedKey = "OEInputMonitoringPreviouslyGranted"
+                if !UserDefaults.standard.bool(forKey: previouslyGrantedKey) {
+                    if dm.requestAccess() {
+                        UserDefaults.standard.set(true, forKey: previouslyGrantedKey)
+                    }
+                }
+
             case .denied:
+                // User explicitly revoked — clear our cached grant so we prompt again
+                // if they ever re-grant and TCC falls back to unknown.
+                UserDefaults.standard.removeObject(forKey: "OEInputMonitoringPreviouslyGranted")
                 DispatchQueue.main.async {
                     self.showInputMonitoringPermissionsAlert()
                 }
-                
+
             default:
                 break
             }
