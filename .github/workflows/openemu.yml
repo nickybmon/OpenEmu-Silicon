@@ -3,8 +3,7 @@ name: OpenEmu.app
 on:
   pull_request:
     branches:
-      - master
-      - staging
+      - main
   workflow_dispatch:
 
 jobs:
