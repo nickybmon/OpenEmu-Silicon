@@ -880,6 +880,7 @@ public final class FilterChain {
             
             let options = MTLCompileOptions()
             options.languageVersion = try MTLLanguageVersion(ss.languageVersion)
+            options.fastMathEnabled = true
             do {
                 let lib = try device.makeLibrary(source: pass.vertexSource, options: options)
                 psd.vertexFunction = lib.makeFunction(name: "main0")
