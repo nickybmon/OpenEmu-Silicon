@@ -14,6 +14,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 struct CMemory
 {
@@ -176,6 +177,7 @@ struct CMemory
 	void	CheckForAnyPatch (const char *, bool8, int32 &);
 
 	void	MakeRomInfoText (char *);
+	std::string GetMultilineROMInfo();
 
 	const char *	MapType (void);
 	const char *	StaticRAMSize (void);

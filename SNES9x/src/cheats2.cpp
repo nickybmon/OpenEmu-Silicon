@@ -8,6 +8,7 @@
 #include "cheats.h"
 #include "snes9x.h"
 #include "memmap.h"
+#include <cassert>
 
 static inline uint8 S9xGetByteFree(uint32 Address)
 {
@@ -322,6 +323,8 @@ void S9xEnableCheat(SCheat &c)
 
 void S9xEnableCheatGroup(uint32 num)
 {
+    assert(num < Cheat.group.size());
+
     for (auto &c : Cheat.group[num].cheat)
         S9xEnableCheat(c);
 
@@ -434,6 +437,9 @@ SCheat S9xTextToCheat(const std::string &text)
     {
         c.conditional = true;
     }
+    else if (sscanf(text.c_str(), "%x : %x", &c.address, &byte) == 2)
+    {
+    }
     else if (sscanf(text.c_str(), "%x / %x", &c.address, &byte) == 2)
     {
     }
@@ -512,9 +518,13 @@ int S9xModifyCheatGroup(uint32 num, const std::string &name, const std::string &
 	if (num >= Cheat.group.size())
 		return -1;
 
+    bool enabled = Cheat.group[num].enabled;
     S9xDisableCheatGroup(num);
 
     Cheat.group[num] = S9xCreateCheatGroup(name, cheat);
+
+    if (enabled)
+        S9xEnableCheatGroup(num);
 
     return num;
 }
@@ -531,7 +541,7 @@ std::string S9xCheatToText(const SCheat &c)
     return std::string(output);
 }
 
-std::string S9xCheatGroupToText(SCheatGroup &g)
+std::string S9xCheatGroupToText(const SCheatGroup &g)
 {
     std::string text = "";
 
