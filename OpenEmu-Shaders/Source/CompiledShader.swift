@@ -122,11 +122,8 @@ public enum Compiled {
             case .version2_1:
                 self = .version2_1
             default:
-                if ((3 << 16)..<(4 << 16)).contains(mtl.rawValue) {
-                    self = .version2_4
-                } else {
-                    throw LanguageVersionError.unsupportedVersion
-                }
+                // Metal 4.0+ or any unrecognised future version: map to highest supported SPIRV-Cross output
+                self = .version2_4
             }
         }
     }
