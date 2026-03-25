@@ -3,7 +3,7 @@ name: OpenEmu.app
 on:
   pull_request:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 jobs:
@@ -22,13 +22,13 @@ jobs:
           xcode-version: latest-stable
       - name: Build OpenEmu
         working-directory: ${{github.workspace}}
-        run: xcodebuild -workspace "OpenEmu-metal.xcworkspace" -scheme "OpenEmu" -configuration Release -sdk macosx -arch arm64 -derivedDataPath DerivedData
+        run: xcodebuild -workspace "OpenEmu-metal.xcworkspace" -scheme "OpenEmu" -configuration Release -sdk macosx -arch arm64 -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       - name: Zip OpenEmu
         working-directory: ${{github.workspace}}/DerivedData/Build/Products/Release/
         run: ditto -c -k --keepParent OpenEmu.app OpenEmu.zip
       - name: Build OpenEmu Experimental
         working-directory: ${{github.workspace}}
-        run: xcodebuild -workspace "OpenEmu-metal.xcworkspace" -scheme "OpenEmu (Experimental)" -configuration Release -sdk macosx -arch arm64 -derivedDataPath DerivedData
+        run: xcodebuild -workspace "OpenEmu-metal.xcworkspace" -scheme "OpenEmu (Experimental)" -configuration Release -sdk macosx -arch arm64 -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       - name: Zip OpenEmu Experimental
         working-directory: ${{github.workspace}}/DerivedData/Build/Products/Release/
         run: ditto -c -k --keepParent OpenEmu.app OpenEmu-experimental.zip
