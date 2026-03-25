@@ -8,7 +8,7 @@
 #define _SNES9X_H_
 
 #ifndef VERSION
-#define VERSION	"1.62.3"
+#define VERSION	"1.63"
 #endif
 
 #include "port.h"
@@ -247,16 +247,19 @@ struct SSettings
 	bool8	Transparency;
 	uint8	BG_Forced;
 	bool8	DisableGraphicWindows;
+	uint16  ForcedBackdrop;
 
 	bool8	DisplayTime;
 	bool8	DisplayFrameRate;
 	bool8	DisplayWatchedAddresses;
 	bool8	DisplayPressedKeys;
 	bool8	DisplayMovieFrame;
+	bool	DisplayIndicators;
 	bool8	AutoDisplayMessages;
 	uint32	InitialInfoStringTimeout;
 	uint16	DisplayColor;
 	bool8	BilinearFilter;
+	bool	ShowOverscan;
 
 	bool8	Multi;
 	char	CartAName[PATH_MAX + 1];
