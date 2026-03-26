@@ -268,7 +268,7 @@ final class OEDBGame: OEDBItem {
     
     // MARK: - Cover Art Database Sync / Info Lookup
     
-    func requestCoverDownload() {
+    @objc func requestCoverDownload() {
         if status == .alert || status == .ok {
             status = .processing
             save()
@@ -276,7 +276,7 @@ final class OEDBGame: OEDBItem {
         }
     }
     
-    func cancelCoverDownload() {
+    @objc func cancelCoverDownload() {
         if status == .processing {
             status = .ok
             save()

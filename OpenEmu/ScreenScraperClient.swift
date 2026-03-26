@@ -84,7 +84,9 @@ final class ScreenScraperClient {
 
     /// Synchronous fetch suitable for calling from a background DispatchQueue.sync block.
     /// Returns nil silently on error (network unavailable, rate-limited, not found, etc.)
-    func fetchGameInfo(md5: String?, romName: String?, systemIdentifier: String) -> ScreenScraperResult? {
+    ///
+    /// Pass `debugMode: true` to attach the developer debug password (100 uses/day limit).
+    func fetchGameInfo(md5: String?, romName: String?, systemIdentifier: String, debugMode: Bool = false) -> ScreenScraperResult? {
 
         guard let systemID = ScreenScraperClient.systemIDs[systemIdentifier] else {
             return nil
@@ -95,24 +97,37 @@ final class ScreenScraperClient {
             URLQueryItem(name: "softname",  value: "OpenEmu-Silicon"),
             URLQueryItem(name: "output",    value: "json"),
             URLQueryItem(name: "systemeid", value: String(systemID)),
+            // Developer app credentials — always present, identify the software to the API
+            URLQueryItem(name: "devid",       value: ScreenScraperClient.devID),
+            URLQueryItem(name: "devpassword", value: ScreenScraperClient.devPassword),
         ]
 
-        if let md5 = md5, !md5.isEmpty {
-            queryItems.append(URLQueryItem(name: "rommd5", value: md5.uppercased()))
-        } else if let romName = romName, !romName.isEmpty {
-            queryItems.append(URLQueryItem(name: "romnom", value: romName))
-        } else {
+        // ScreenScraper requires romnom; rommd5 is additive for accuracy.
+        // Sending both when available gives the best match rate.
+        guard (md5 != nil && !(md5!.isEmpty)) || (romName != nil && !(romName!.isEmpty)) else {
             return nil
         }
+        if let md5 = md5, !md5.isEmpty {
+            queryItems.append(URLQueryItem(name: "rommd5", value: md5.uppercased()))
+        }
+        if let romName = romName, !romName.isEmpty {
+            queryItems.append(URLQueryItem(name: "romnom", value: romName))
+        }
 
-        // Append user credentials if configured — used as both dev and user identity
-        let username = UserDefaults.standard.string(forKey: "ScreenScraperUsername") ?? ""
-        let password = ScreenScraperCredentials.storedPassword() ?? ""
-        if !username.isEmpty && !password.isEmpty {
-            queryItems.append(URLQueryItem(name: "devid",       value: username))
-            queryItems.append(URLQueryItem(name: "devpassword", value: password))
-            queryItems.append(URLQueryItem(name: "ssid",        value: username))
-            queryItems.append(URLQueryItem(name: "sspassword",  value: password))
+        // User credentials — optional, attached when the user has saved their own account.
+        // Increases the user's personal rate limit beyond the anonymous shared quota.
+        let ssUsername = UserDefaults.standard.string(forKey: "ScreenScraperUsername") ?? ""
+        let ssPassword = ScreenScraperCredentials.storedPassword() ?? ""
+        if !ssUsername.isEmpty && !ssPassword.isEmpty {
+            queryItems.append(URLQueryItem(name: "ssid",       value: ssUsername))
+            queryItems.append(URLQueryItem(name: "sspassword", value: ssPassword))
+        }
+
+        // Developer debug mode — forces cache refresh and bypasses quota counters for testing.
+        // Capped at 100 uses/day by ScreenScraper. Never enable in production flows.
+        if debugMode {
+            queryItems.append(URLQueryItem(name: "devdebugpassword", value: ScreenScraperClient.devDebugPassword))
+            queryItems.append(URLQueryItem(name: "forceupdate",      value: "1"))
         }
 
         components.queryItems = queryItems

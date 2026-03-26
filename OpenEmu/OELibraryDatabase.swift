@@ -580,7 +580,7 @@ final class OELibraryDatabase: NSObject {
     func startOpenVGDBSync() {
         objc_sync_enter(syncThread)
         defer { objc_sync_exit(syncThread) }
-        
+
         if syncThread.isFinished {
             syncThread = makeSyncThread()
         }

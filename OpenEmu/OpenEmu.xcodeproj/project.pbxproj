@@ -458,6 +458,7 @@
 		8FBD79192736A17B00E455FC /* GameInfoHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBD79182736A17B00E455FC /* GameInfoHelper.swift */; };
 		CC0011223344556701900001 /* ScreenScraperClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0011223344556601900001 /* ScreenScraperClient.swift */; };
 		CC0011223344556901900001 /* PrefScreenScraperController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0011223344556801900001 /* PrefScreenScraperController.swift */; };
+		CC0011223344557101900001 /* ScreenScraperDevCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0011223344557001900001 /* ScreenScraperDevCredentials.swift */; };
 		8FBD791A2736C63D00E455FC /* XADArchive+OE.m in Sources */ = {isa = PBXBuildFile; fileRef = 836BC9591853817500B6AF26 /* XADArchive+OE.m */; };
 		8FC080272825914E00F18E15 /* OELibraryDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC080262825914E00F18E15 /* OELibraryDatabase.swift */; };
 		8FC3CC692708BD4200747DC2 /* OEGameDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC3CC682708BD4200747DC2 /* OEGameDocument.swift */; };
@@ -1703,6 +1704,8 @@
 		8FBD79182736A17B00E455FC /* GameInfoHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameInfoHelper.swift; sourceTree = "<group>"; };
 		CC0011223344556601900001 /* ScreenScraperClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenScraperClient.swift; sourceTree = "<group>"; };
 		CC0011223344556801900001 /* PrefScreenScraperController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrefScreenScraperController.swift; sourceTree = "<group>"; };
+		CC0011223344557001900001 /* ScreenScraperDevCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenScraperDevCredentials.swift; sourceTree = "<group>"; };
+		CC0011223344557201900001 /* ScreenScraperDevCredentials.template.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScreenScraperDevCredentials.template.swift; sourceTree = "<group>"; };
 		8FC080262825914E00F18E15 /* OELibraryDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OELibraryDatabase.swift; sourceTree = "<group>"; };
 		8FC3CC682708BD4200747DC2 /* OEGameDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OEGameDocument.swift; sourceTree = "<group>"; };
 		8FCCCE5724E7087800223181 /* en-GB */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = "en-GB"; path = "en-GB.lproj/Debug.strings"; sourceTree = "<group>"; };
@@ -3025,6 +3028,7 @@
 				01E2A2F223E60F7D00194150 /* PrefCoresController.swift */,
 				8F40EB7A1C1072B100683055 /* PrefCoresController.xib */,
 				CC0011223344556801900001 /* PrefScreenScraperController.swift */,
+				CC0011223344557001900001 /* ScreenScraperDevCredentials.swift */,
 				83495DD319A38F31009DB6E5 /* PrefBiosController.swift */,
 				83495DD719A38F3D009DB6E5 /* PrefBiosController.xib */,
 				83753F1614F537C400D708A7 /* PrefDebugController.swift */,
@@ -4120,6 +4124,7 @@
 				5CCE228E57ED51524BAE52BB /* OESyncStatusOverlayView.swift */,
 				0EF37C00BE9099269AB29467 /* PrefCloudSyncController.swift */,
 				35F8401C31D685D3E7EAA048 /* OEGoogleDriveSecrets.template.swift */,
+				CC0011223344557201900001 /* ScreenScraperDevCredentials.template.swift */,
 			);
 			name = OpenEmu;
 			sourceTree = "<group>";
@@ -6421,6 +6426,7 @@
 				01E2A2F323E60F7E00194150 /* PrefCoresController.swift in Sources */,
 				CC0011223344556701900001 /* ScreenScraperClient.swift in Sources */,
 				CC0011223344556901900001 /* PrefScreenScraperController.swift in Sources */,
+				CC0011223344557101900001 /* ScreenScraperDevCredentials.swift in Sources */,
 				8FBD79192736A17B00E455FC /* GameInfoHelper.swift in Sources */,
 				5A438A1B1D89AEB60061A47C /* OpenEmuApplication.swift in Sources */,
 				8F2F92AA2519A9E700699691 /* GameScannerButton.swift in Sources */,
