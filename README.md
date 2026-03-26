@@ -14,7 +14,7 @@
 
 **Actively maintained. Running natively on Apple Silicon (no Rosetta required).**
 
-This is a community-maintained fork of OpenEmu, rebuilt to run natively on M-series Macs. All 25 emulation cores have been ported to ARM64. The app runs on macOS 11.0+ and has been tested on macOS Sequoia and macOS 26 (Tahoe).
+This is a community-maintained fork of OpenEmu, rebuilt to run natively on M-series Macs. All emulation cores have been ported to ARM64. The app runs on macOS 11.0+ and has been tested on macOS Sequoia and macOS 26 (Tahoe).
 
 > **Note:** Code signing and notarization are not yet fully sorted. On first launch, right-click the app and choose Open to bypass Gatekeeper.
 
@@ -26,39 +26,69 @@ Get the latest build from the **[Releases](https://github.com/chris-p-bacon-sudo
 
 ---
 
+## What's New
+
+Recent highlights from active development:
+
+- **Sony PSP** — PPSSPP-Core fully rebuilt and integrated. PSP emulation now works natively on Apple Silicon.
+- **Nintendo 64** — Mupen64Plus revived and working. N64 emulation is back.
+- **Sega Dreamcast** — Migrated from Reicast to Flycast. Dreamcast emulation is significantly more stable.
+- **ScreenScraper cover art** — The library now automatically fetches box art from [ScreenScraper.eu](https://screenscraper.eu), replacing the old manual cover art workflow entirely. Enter your credentials in Preferences → Cover Art and your library fills in automatically.
+- **Core updates** — SNES9x updated to 1.63, mGBA updated to 0.10.5.
+- **Pokémon Mini** — PokeMini and Potator (Watara Supervision) workspace integration fixed; both now build and run.
+- **macOS 26 (Tahoe) compatibility** — Multiple fixes across the app and build system for full Tahoe support.
+
+---
+
 ## What Works
 
-| System | Core | Status |
-|--------|------|--------|
-| Atari 2600 | [Stella](https://github.com/stella-emu/stella) | Working |
-| Atari 5200 | [Atari800](https://github.com/atari800/atari800) | Working |
-| Atari 7800 | [ProSystem](https://gitlab.com/jgemu/prosystem) | Working |
-| Atari Lynx | [Mednafen](https://mednafen.github.io) | Working |
-| ColecoVision | [JollyCV](https://github.com/OpenEmu/JollyCV-Core) | Working |
-| Commodore 64 | VICE | Working |
-| Famicom Disk System | [Nestopia](https://gitlab.com/jgemu/nestopia) | Working |
-| Game Boy / GBC | [Gambatte](https://gitlab.com/jgemu/gambatte) | Working |
-| Game Boy Advance | [mGBA](https://github.com/mgba-emu/mgba) | Working |
-| Game Gear | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | Working |
-| Intellivision | [Bliss](https://github.com/jeremiah-sypult/BlissEmu) | Working |
-| Nintendo (NES) | [Nestopia](https://gitlab.com/jgemu/nestopia), [FCEU](https://github.com/TASEmulators/fceux) | Working |
-| Nintendo 64 | [Mupen64Plus](https://github.com/mupen64plus) | Working |
-| Nintendo DS | [DeSmuME](https://github.com/TASEmulators/desmume) | Working |
-| Odyssey² / Videopac+ | [O2EM](https://sourceforge.net/projects/o2em/) | Working |
-| Pokémon Mini | [PokeMini](https://github.com/pokerazor/pokemini) | Working |
-| Sega 32X | [picodrive](https://github.com/notaz/picodrive) | Working |
-| Sega CD / Mega CD | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | Working |
-| Sega Dreamcast | [Flycast](https://github.com/flyinghead/flycast) | Working — needs BIOS (dc_boot.bin, dc_flash.bin) |
-| Sega Genesis / Mega Drive | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | Working |
-| Sega Master System | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | Working |
-| Sega Saturn | [Mednafen](https://mednafen.github.io) | Working |
-| Sony PlayStation | [Mednafen](https://mednafen.github.io) | Working |
-| Super Nintendo (SNES) | [BSNES](https://github.com/bsnes-emu/bsnes), [Snes9x](https://github.com/snes9xgit/snes9x) | Working |
-| Vectrex | [VecXGL](https://github.com/james7780/VecXGL) | Working |
-| WonderSwan | [Mednafen](https://mednafen.github.io) | Working |
-| 3DO | [4DO](https://github.com/fourdo/fourdo) | Working |
+| System | Core | Notes |
+|--------|------|-------|
+| Atari 2600 | [Stella](https://github.com/stella-emu/stella) | |
+| Atari 5200 | [Atari800](https://github.com/atari800/atari800) | |
+| Atari 7800 | [ProSystem](https://gitlab.com/jgemu/prosystem) | |
+| Atari Jaguar | [VirtualJaguar](https://github.com/OpenEmu/VirtualJaguar-Core) | |
+| Atari Lynx | [Mednafen](https://mednafen.github.io) | |
+| ColecoVision | [JollyCV](https://github.com/OpenEmu/JollyCV-Core) | |
+| Famicom Disk System | [Nestopia](https://gitlab.com/jgemu/nestopia) | |
+| Game Boy / GBC | [Gambatte](https://gitlab.com/jgemu/gambatte) | |
+| Game Boy Advance | [mGBA](https://github.com/mgba-emu/mgba) 0.10.5 | |
+| Game Gear | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | |
+| Intellivision | [Bliss](https://github.com/jeremiah-sypult/BlissEmu) | |
+| MSX | [blueMSX](https://github.com/OpenEmu/blueMSX-Core) | |
+| Nintendo (NES) | [Nestopia](https://gitlab.com/jgemu/nestopia), [FCEU](https://github.com/TASEmulators/fceux) | |
+| Nintendo 64 | [Mupen64Plus](https://github.com/mupen64plus) | Revived |
+| Odyssey² / Videopac+ | [O2EM](https://sourceforge.net/projects/o2em/) | |
+| PC Engine / TurboGrafx-16 | [Mednafen](https://mednafen.github.io) | |
+| Pokémon Mini | [PokeMini](https://github.com/pokerazor/pokemini) | |
+| Sega 32X | [picodrive](https://github.com/notaz/picodrive) | |
+| Sega CD / Mega CD | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | |
+| Sega Dreamcast | [Flycast](https://github.com/flyinghead/flycast) | Needs BIOS: dc_boot.bin, dc_flash.bin |
+| Sega Genesis / Mega Drive | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | |
+| Sega Master System | [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) | |
+| Sega Saturn | [Mednafen](https://mednafen.github.io) | |
+| Sony PlayStation | [Mednafen](https://mednafen.github.io) | |
+| Sony PSP | [PPSSPP](https://github.com/hrydgard/ppsspp) | Rebuilt for Apple Silicon |
+| Super Nintendo (SNES) | [Snes9x](https://github.com/snes9xgit/snes9x) 1.63 | |
+| Vectrex | [VecXGL](https://github.com/james7780/VecXGL) | |
+| Watara Supervision | [Potator](https://github.com/alekmaul/potator) | |
+| WonderSwan | [Mednafen](https://mednafen.github.io) | |
+| 3DO | [4DO](https://github.com/fourdo/fourdo) | |
 
-**Also working:** controller mapping and detection, save states, Google Drive sync for saves.
+**Also working:** controller mapping and detection, save states, Google Drive sync for saves, ScreenScraper cover art.
+
+---
+
+## What's Planned
+
+The next major milestones on the roadmap:
+
+- **Nintendo DS** — melonDS integration (greenfield wrapper; DeSmuME is abandoned)
+- **MAME / Arcade** — system plugin is ready; emulation core integration is the remaining work
+- **GameCube** — Dolphin overhaul; community fork exists, high complexity
+- **Core version updates** — targeting latest stable releases across all cores
+
+See [`docs/roadmap.md`](docs/roadmap.md) for the full plan with implementation details.
 
 ---
 
@@ -81,7 +111,7 @@ Get the latest build from the **[Releases](https://github.com/chris-p-bacon-sudo
 
 OpenEmu is one of the best pieces of Mac software ever made — a beautifully designed, first-class game emulation frontend that brought together dozens of emulation cores under a single native macOS UI. The original project went quiet around 2022.
 
-This fork started from [bazley82's OpenEmuARM64](https://github.com/bazley82/OpenEmuARM64), which did the foundational work of porting all 25 cores to build natively on Apple Silicon. I've continued to work in my own build for fun and to get soemthing working for myself and others that i'm happy with — fixing macOS 26 compatibility issues, hardening the build, and setting up community infrastructure to keep the project alive. I've also tried to preserve as much of the original build that made it great while getting it working on newer MacOS and Swift versions.
+This fork started from [bazley82's OpenEmuARM64](https://github.com/bazley82/OpenEmuARM64), which did the foundational work of porting all 25 cores to build natively on Apple Silicon. Since then this project has diverged significantly: Nintendo 64 and Pokémon Mini were rebuilt from scratch and brought back online; PPSSPP was fully re-integrated to add PSP emulation on Apple Silicon; Dreamcast was migrated from the stale Reicast codebase to Flycast for a much more stable experience; ScreenScraper cover art was integrated to bring the library back to life; multiple core updates shipped (SNES9x 1.63, mGBA 0.10.5); and the entire app was hardened for macOS 26 (Tahoe) compatibility. The goal is to make OpenEmu genuinely great on modern Macs again — not just technically booting, but actually usable for players.
 
 **Lineage:**
 - [OpenEmu/OpenEmu](https://github.com/OpenEmu/OpenEmu) — the original project, built by the OpenEmu team
@@ -95,6 +125,15 @@ This fork started from [bazley82's OpenEmuARM64](https://github.com/bazley82/Ope
 I'm not a professional developer. I work on this project using Cursor and Claude as development assistants — they help me write and debug code I couldn't write alone. I review every change, test everything, and make all the calls about direction and quality.
 
 I'm transparent about this because honesty with the community matters more than maintaining an illusion of expertise I don't have. The goal is to keep something good alive and make it genuinely usable for players.
+
+---
+
+## Documentation
+
+| Doc | What's in it |
+|-----|-------------|
+| [`docs/cores.md`](docs/cores.md) | Every emulation core: working status, upstream version, system compatibility, known issues |
+| [`docs/roadmap.md`](docs/roadmap.md) | Planned integrations (Nintendo DS, MAME, GameCube) with implementation details |
 
 ---
 
