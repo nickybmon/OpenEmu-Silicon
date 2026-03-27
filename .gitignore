@@ -33,8 +33,6 @@ Releases/
 OpenEmu/OEGoogleDriveSecrets.swift
 OpenEmu/ScreenScraperDevCredentials.swift
 
-# AI agent session files
-.claude/
 
 # Misc build artifacts committed to root
 hang_sample.txt
