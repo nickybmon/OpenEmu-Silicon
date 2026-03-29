@@ -79,10 +79,6 @@
 		C6D120EC1711307900E868A8 /* OpenEmuBase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6D120EB1711307900E868A8 /* OpenEmuBase.framework */; };
                 CC00000123B985A800F0B36E /* debugger.c in Sources */ = {isa = PBXBuildFile; fileRef = 0167A44C23B9843600F0B36E /* debugger.c */; };
                 CC00000223B985A800F0B36E /* sm83_disassembler.c in Sources */ = {isa = PBXBuildFile; fileRef = 0167A45B23B9843600F0B36E /* sm83_disassembler.c */; };
-                CC00000323B985A800F0B36E /* cheat_search.c in Sources */ = {isa = PBXBuildFile; fileRef = BB00000123B9843600F0B36E /* cheat_search.c */; };
-                CC00000423B985A800F0B36E /* cheats.c in Sources */ = {isa = PBXBuildFile; fileRef = BB00000223B9843600F0B36E /* cheats.c */; };
-                CC00000523B985A800F0B36E /* rumble.c in Sources */ = {isa = PBXBuildFile; fileRef = BB00000323B9843600F0B36E /* rumble.c */; };
-                CC00000623B985A800F0B36E /* workboy.c in Sources */ = {isa = PBXBuildFile; fileRef = BB00000423B9843600F0B36E /* workboy.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -758,10 +754,6 @@
 		C6480FFB1364B2E10094FA33 /* OESNESSystemResponderClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OESNESSystemResponderClient.h; path = ../OpenEmu/SystemPlugins/SuperNES/OESNESSystemResponderClient.h; sourceTree = "<group>"; };
 		C6D120EB1711307900E868A8 /* OpenEmuBase.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = OpenEmuBase.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D2F7E65807B2D6F200F64583 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
-                BB00000123B9843600F0B36E /* cheat_search.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = cheat_search.c; sourceTree = "<group>"; };
-                BB00000223B9843600F0B36E /* cheats.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = cheats.c; sourceTree = "<group>"; };
-                BB00000323B9843600F0B36E /* rumble.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = rumble.c; sourceTree = "<group>"; };
-                BB00000423B9843600F0B36E /* workboy.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = workboy.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2006,10 +1998,6 @@
 		0167A43F23B9843600F0B36E /* Core */ = {
 			isa = PBXGroup;
 			children = (
-                                BB00000123B9843600F0B36E /* cheat_search.c */,
-                                BB00000223B9843600F0B36E /* cheats.c */,
-                                BB00000323B9843600F0B36E /* rumble.c */,
-                                BB00000423B9843600F0B36E /* workboy.c */,
 				0167A44023B9843600F0B36E /* sm83_cpu.h */,
 				0167A44123B9843600F0B36E /* sgb_animation_logo.inc */,
 				0167A44223B9843600F0B36E /* printer.h */,
@@ -2377,10 +2365,6 @@
 			files = (
                                 CC00000123B985A800F0B36E /* debugger.c in Sources */,
                                 CC00000223B985A800F0B36E /* sm83_disassembler.c in Sources */,
-                                CC00000323B985A800F0B36E /* cheat_search.c in Sources */,
-                                CC00000423B985A800F0B36E /* cheats.c in Sources */,
-                                CC00000523B985A800F0B36E /* rumble.c in Sources */,
-                                CC00000623B985A800F0B36E /* workboy.c in Sources */,
 				0167A56223B985A800F0B36E /* mbc.c in Sources */,
 				0167A56D23B985E600F0B36E /* lzma.cpp in Sources */,
 				0167A54A23B984DA00F0B36E /* dsp.cpp in Sources */,
