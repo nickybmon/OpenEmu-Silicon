@@ -71,7 +71,8 @@ jobs:
             -archivePath $RUNNER_TEMP/OpenEmu.xcarchive \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             CODE_SIGN_IDENTITY="Developer ID Application" \
-            CODE_SIGN_STYLE=Manual
+            CODE_SIGN_STYLE=Manual \
+            ENABLE_HARDENED_RUNTIME=YES
 
       # ── Extract signed .app from archive ─────────────────────────────────────
       # Skips xcodebuild -exportArchive (method names changed in Xcode 26).
@@ -103,11 +104,23 @@ jobs:
 
       - name: Notarize app
         run: |
-          xcrun notarytool submit "$RUNNER_TEMP/OpenEmu-notarize.zip" \
+          SUBMISSION=$(xcrun notarytool submit "$RUNNER_TEMP/OpenEmu-notarize.zip" \
             --apple-id "${{ secrets.APPLE_ID }}" \
             --password "${{ secrets.APPLE_ID_PASSWORD }}" \
             --team-id "${{ secrets.APPLE_TEAM_ID }}" \
-            --wait
+            --wait --output-format json)
+          echo "$SUBMISSION"
+          STATUS=$(echo "$SUBMISSION" | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+          ID=$(echo "$SUBMISSION" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "Notarization rejected (status: $STATUS). Fetching log..."
+            xcrun notarytool log "$ID" \
+              --apple-id "${{ secrets.APPLE_ID }}" \
+              --password "${{ secrets.APPLE_ID_PASSWORD }}" \
+              --team-id "${{ secrets.APPLE_TEAM_ID }}"
+            exit 1
+          fi
+          echo "Notarization accepted."
 
       - name: Staple notarization ticket to app
         run: |
