@@ -17,7 +17,7 @@ This file is read at the start of every Claude Code session for this project. Fo
 
 ## Never Do This
 
-- Never commit directly to `main` or `master`
+- Never commit directly to `main` or `master` **unless** the direct-commit rule below applies
 - Never push a branch without opening a PR in the same step — a branch with no PR looks like abandoned work
 - Never reuse a merged branch — new commits on a merged branch have no PR and are invisible to reviewers
 - Never force-push to `main`
@@ -87,10 +87,19 @@ xcodebuild -workspace OpenEmu-metal.xcworkspace -scheme OpenEmu -configuration D
 ## Git Workflow
 
 **Branch strategy:**
-- `main` — default branch. All PRs target `main`. Never commit directly to `main`.
+- `main` — default branch. All PRs target `main`. Direct commits allowed only per the rule below.
 - `master` — mirrors upstream (`bazley82/OpenEmuARM64`) only. Never commit here.
 - Feature/fix branches: `fix/description`, `feat/description`, `chore/description`
 - One branch per concern → one PR per branch
+
+**Direct commit to `main` — when it's OK:**
+
+Direct commits (no PR) are allowed when **all three** conditions are met:
+1. The change is CI/workflow files, config, or docs only — no Swift, ObjC, or build system code
+2. It's a single focused fix (not bundling multiple concerns)
+3. It's actively unblocking an in-progress task (e.g. iterating on a failing workflow run)
+
+Branch + PR is required for everything else: any app code change, build system edits, security/entitlement config, or anything worth a review record.
 
 **The full loop — every time, no exceptions:**
 
