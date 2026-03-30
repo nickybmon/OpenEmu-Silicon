@@ -133,8 +133,12 @@ jobs:
 
       - name: Notarize app
         # Use --no-wait + polling loop instead of --wait to avoid long-lived
-        # connections that drop when Apple's service is slow (seen taking 26-46 min).
+        # connections that drop when Apple's service is slow (seen taking 5-46 min).
         # Each poll is a short independent request resilient to network blips.
+        # Poll every 30s for the first 5 iterations (Apple often finishes in 2-5 min),
+        # then back off to 60s — total budget ~72 minutes before timing out.
+        id: notarize
+        timeout-minutes: 90
         run: |
           RESULT=$(xcrun notarytool submit "$RUNNER_TEMP/OpenEmu-notarize.zip" \
             --apple-id "${{ secrets.APPLE_ID }}" \
@@ -144,17 +148,31 @@ jobs:
           echo "$RESULT"
           ID=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
           echo "Submission ID: $ID"
+          echo "NOTARY_ID=$ID" >> $GITHUB_OUTPUT
+          echo "::notice title=Notarization Submission ID::$ID"
 
           STATUS="In Progress"
-          for i in $(seq 1 60); do
-            sleep 60
+          ERR_COUNT=0
+          for i in $(seq 1 70); do
+            if [ "$i" -le 5 ]; then sleep 30; else sleep 60; fi
+            ELAPSED=$(( i <= 5 ? i * 30 : 150 + (i - 5) * 60 ))
             POLL=$(xcrun notarytool info "$ID" \
               --apple-id "${{ secrets.APPLE_ID }}" \
               --password "${{ secrets.APPLE_ID_PASSWORD }}" \
               --team-id "${{ secrets.APPLE_TEAM_ID }}" \
               --output-format json 2>/dev/null || echo '{"status":"error"}')
             STATUS=$(echo "$POLL" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','error'))" 2>/dev/null || echo "error")
-            echo "[$i/60] Status: $STATUS"
+            if [ "$STATUS" = "error" ]; then
+              ERR_COUNT=$((ERR_COUNT + 1))
+              echo "[$i/70] Network error (${ERR_COUNT} consecutive, ≈${ELAPSED}s elapsed)"
+              if [ "$ERR_COUNT" -ge 5 ]; then
+                echo "Too many consecutive network errors — giving up."
+                exit 1
+              fi
+              continue
+            fi
+            ERR_COUNT=0
+            echo "[$i/70] Status: $STATUS (≈${ELAPSED}s elapsed)"
             if [ "$STATUS" = "Accepted" ]; then
               echo "Notarization accepted."
               break
@@ -169,7 +187,7 @@ jobs:
           done
 
           if [ "$STATUS" != "Accepted" ]; then
-            echo "Timed out after 60 minutes. Final status: $STATUS"
+            echo "Timed out. Final status: $STATUS"
             exit 1
           fi
 
