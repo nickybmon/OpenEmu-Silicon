@@ -28,8 +28,6 @@
 #include "OpenEmuInput.h"
 #include "OpenEmuController.h"
 
-#include <OpenGL/gl3.h>
-#include <OpenGL/gl3ext.h>
 #import  <Cocoa/Cocoa.h>
 
 #include "AudioCommon/AudioCommon.h"
@@ -77,7 +75,6 @@
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/OnScreenDisplay.h"
-#include "VideoBackends/OGL/ProgramShaderCache.h"
 
 #include "Core/Config/MainSettings.h"
 #include "Core/ConfigManager.h"
@@ -132,7 +129,7 @@ void DolHost::Init(std::string supportDirectoryPath, std::string cpath)
     Config::SetBase(Config::MAIN_SHOW_FRAME_COUNT, false);
     
     //Video
-    Config::SetBase(Config::MAIN_GFX_BACKEND, "OGL");
+    Config::SetBase(Config::MAIN_GFX_BACKEND, "Metal");
     VideoBackendBase::ActivateBackend(Config::Get(Config::MAIN_GFX_BACKEND));
     
     //Set the Sound
@@ -219,6 +216,12 @@ bool DolHost::LoadFileAtPath()
     //    //    else
     //    //        WiiUtils::DoDiscUpdate(nil, _gameRegionName);
 
+    // Provide the sizing layer so Dolphin's Metal backend reads the correct surface dimensions.
+    if (m_metalLayer) {
+        wsi.type = WindowSystemType::MacOS;
+        wsi.render_surface = (__bridge void*)m_metalLayer;
+    }
+
     if (!BootManager::BootCore(system, BootParameters::GenerateFromFile(_gamePath), wsi))
         return false;
    
@@ -284,14 +287,19 @@ bool DolHost::CoreRunning()
     return false;
 }
 
-# pragma mark - Render FBO
-void DolHost::SetPresentationFBO(int RenderFBO)
+# pragma mark - Metal render target
+
+// Forward declaration — avoids including MTLGfx.h (which pulls in MRCHelpers.h, no-ARC only).
+namespace Metal { void GfxSetOETexture(id<MTLTexture> texture); }
+
+void DolHost::SetMetalLayer(CAMetalLayer* layer)
 {
-    g_Config.iRenderFBO = RenderFBO;
+    m_metalLayer = layer;
 }
 
-void DolHost::SetBackBufferSize(int width, int height) {
-    //GLInterface->SetBackBufferDimensions(width, height);
+void DolHost::SetMetalTexture(id<MTLTexture> texture)
+{
+    Metal::GfxSetOETexture(texture);
 }
 
 

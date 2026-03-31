@@ -25,6 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #import <Cocoa/Cocoa.h>
+#import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
 #import "OEGCSystemResponderClient.h"
 #import "Wii/OEWiiSystemResponderClient.h"
 
@@ -51,8 +53,8 @@ public:
 
 
     void RunCore();
-    void SetPresentationFBO(int RenderFBO);
-    void SetBackBufferSize(int width, int height);
+    void SetMetalLayer(CAMetalLayer* layer);
+    void SetMetalTexture(id<MTLTexture> texture);
 
     void setButtonState(int button, int state, int player);
     void SetAxis(int button, float value, int player);
@@ -103,6 +105,7 @@ public:
     DiscIO::Country _gameCountry;
     std::string _gameCountryDir;
 
+    CAMetalLayer* m_metalLayer = nil;
     bool        _onBoot = true;
     bool        _wiiWAD;
     int         _wiiMoteType;
