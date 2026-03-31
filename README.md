@@ -131,6 +131,7 @@ I'm transparent about this because honesty with the community matters more than 
 
 | Doc | What's in it |
 |-----|-------------|
+| [Wiki](https://github.com/nickybmon/OpenEmu-Silicon/wiki) | User guides: getting started, BIOS files, importing, CD games, controllers, troubleshooting |
 | [`docs/cores.md`](docs/cores.md) | Every emulation core: working status, upstream version, system compatibility, known issues |
 | [`docs/roadmap.md`](docs/roadmap.md) | Planned integrations (Nintendo DS, MAME, GameCube) with implementation details |
 
