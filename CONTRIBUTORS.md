@@ -32,6 +32,9 @@ Continued development, macOS compatibility updates, and community infrastructure
 
 ## Contributors to This Repository
 
+- **pystIC** — https://github.com/pystIC
+  Review of [pystIC/OpenEmuARM64-metal4-shaders-core-updates](https://github.com/pystIC/OpenEmuARM64-metal4-shaders-core-updates) identified the Metal 4 shader version crash fix and fast math optimization landed in [PR #44](https://github.com/nickybmon/OpenEmu-Silicon/pull/44), and flagged the mGBA and SNES9x upstream version gaps tracked in [#42](https://github.com/nickybmon/OpenEmu-Silicon/issues/42) and [#43](https://github.com/nickybmon/OpenEmu-Silicon/issues/43).
+
 <!-- Contributors: your name and GitHub profile link will be added here as PRs are merged. -->
 
 If you've contributed a fix, feature, or improvement to this repository and your name isn't listed here, please open a PR to add it.
