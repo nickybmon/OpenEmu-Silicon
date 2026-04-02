@@ -80,6 +80,12 @@ final class PrefCoresController: NSViewController {
         coresTableView.delegate = self // Ensure delegate is set for heightOfRow
     }
     
+    @IBAction func installAllCores(_ sender: Any) {
+        for download in CoreUpdater.shared.coreList where download.canBeInstalled && download.appcastItem != nil {
+            CoreUpdater.shared.installCoreInBackgroundUserInitiated(download)
+        }
+    }
+
     @IBAction func updateOrInstall(_ sender: NSButton) {
         let row = coresTableView.row(for: sender)
         guard row > -1 else { return }
@@ -215,6 +221,9 @@ extension PrefCoresController: NSTableViewDelegate {
 
              if plugin.isDownloading {
                 button.title = "..."
+                button.isEnabled = false
+            } else if plugin.canBeInstalled && plugin.appcastItem == nil {
+                button.title = NSLocalizedString("Unavailable", comment: "")
                 button.isEnabled = false
             } else if plugin.canBeInstalled {
                 button.title = NSLocalizedString("Install", comment: "")
