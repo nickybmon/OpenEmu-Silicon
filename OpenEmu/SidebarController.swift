@@ -162,7 +162,12 @@ final class SidebarController: NSViewController {
             sidebarView.abortEditing()
         }
         
-        systems     = OEDBSystem.enabledSystems(in: database.mainThreadContext)
+        let allSystems = OEDBSystem.enabledSystems(in: database.mainThreadContext)
+        systems = allSystems.filter { system in
+            let hasCores = !OECorePlugin.corePlugins(forSystemIdentifier: system.systemIdentifier).isEmpty
+            let hasGames = !system.games.isEmpty
+            return hasCores || hasGames
+        }
         collections = database.collections
         sidebarView.reloadData()
     }
