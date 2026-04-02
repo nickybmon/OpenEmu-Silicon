@@ -41,14 +41,12 @@ final class PrefCoresController: NSViewController {
     @IBOutlet var coresTableView: NSTableView!
 
     var coreListObservation: NSKeyValueObservation?
-    private weak var installAllButton: NSButton?
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
         coreListObservation = CoreUpdater.shared.observe(\CoreUpdater.coreList) { [weak self] _, _ in
             self?.coresTableView.reloadData()
-            self?.updateInstallAllButton()
         }
         CoreUpdater.shared.checkForNewCores()   // TODO: check error from completion handler
         CoreUpdater.shared.checkForUpdates()
@@ -79,42 +77,13 @@ final class PrefCoresController: NSViewController {
         }
 
         coresTableView.delegate = self
-        addInstallAllButton()
 
-        // Reload after appcasts finish fetching — the KVO fires per-core as each
-        // one arrives, but the final button states (e.g. "Unavailable") settle
-        // once all fetches complete. A short deferred reload catches stragglers.
+        // Reload after appcasts finish fetching so Unavailable/Install states settle.
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
             self?.coresTableView.reloadData()
-            self?.updateInstallAllButton()
         }
-    }
-
-    private func addInstallAllButton() {
-        let button = NSButton(title: NSLocalizedString("Install All Available Cores", comment: ""), target: self, action: #selector(installAllCores(_:)))
-        button.bezelStyle = .rounded
-        button.translatesAutoresizingMaskIntoConstraints = false
-        installAllButton = button
-        view.addSubview(button)
-
-        let anchor: NSView = coresTableView.enclosingScrollView ?? coresTableView
-        NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: anchor.bottomAnchor, constant: 8),
-            button.trailingAnchor.constraint(equalTo: anchor.trailingAnchor),
-        ])
-    }
-
-    private func updateInstallAllButton() {
-        let hasInstallable = CoreUpdater.shared.coreList.contains { $0.canBeInstalled && $0.appcastItem != nil }
-        installAllButton?.isEnabled = hasInstallable
     }
     
-    @IBAction func installAllCores(_ sender: Any) {
-        for download in CoreUpdater.shared.coreList where download.canBeInstalled && download.appcastItem != nil {
-            CoreUpdater.shared.installCoreInBackgroundUserInitiated(download)
-        }
-    }
-
     @IBAction func updateOrInstall(_ sender: NSButton) {
         let row = coresTableView.row(for: sender)
         guard row > -1 else { return }
