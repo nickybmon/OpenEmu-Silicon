@@ -20,6 +20,28 @@ This is a community-maintained fork of OpenEmu, rebuilt to run natively on M-ser
 
 ---
 
+## Why this exists if original OpenEmu already works on your M-series Mac
+
+It probably does work — Rosetta 2 is genuinely impressive at hiding the fact that you're running an Intel app on Apple Silicon. Here's what's actually happening and why it matters.
+
+**What the original OpenEmu does on Apple Silicon**
+The original project was built for Intel Macs and hasn't had a release since 2022. When you run it on an M-series Mac, macOS silently runs it through Rosetta 2 — Apple's x86-to-ARM translation layer. Rosetta is remarkably good, which is why many people never notice.
+
+**What this build does differently**
+- **Native ARM64** — every emulation core runs directly on the Apple Silicon chip, no translation layer
+- **Metal renderer** — Apple deprecated OpenGL; this build uses Metal, the native macOS graphics API
+- **Active maintenance** — updated cores, macOS 26 (Tahoe) compatibility fixes, and new systems added
+
+**When you might notice a real difference**
+For lighter systems (NES, SNES, GBA), you probably won't. For heavier cores — N64, PlayStation, Dreamcast, PSP — native execution means lower CPU overhead, better frame pacing, and less fan activity during long sessions.
+
+**Rosetta 2 has a confirmed end of life**
+Starting with macOS 26.4, Apple will show a notification every time you launch an app that still requires Rosetta — alerting users to find native alternatives. Starting with macOS 28 (expected Fall 2027), Rosetta 2 will be largely discontinued. When that happens, the original OpenEmu stops working entirely. This build won't be affected.
+
+If original OpenEmu meets your needs today, there's no urgency. But if you've had a core feel sluggish, noticed audio issues, or want to be ahead of the Rosetta end-of-life, this is the build to switch to.
+
+---
+
 ## Download
 
 Get the latest build from the **[Releases](https://github.com/nickybmon/OpenEmu-Silicon/releases)** page.
