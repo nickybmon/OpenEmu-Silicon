@@ -15,11 +15,10 @@
 -->
 <cores>
 
-  <!-- ✅ universal binary -->
   <core
     id="org.openemu.nestopia"
     name="Nestopia"
-    appcastURL="https://raw.github.com/OpenEmu/OpenEmu-Update/master/nestopia_appcast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/nestopia.xml">
     <description>Nintendo/Famicom emulator</description>
     <systems>
       <system id="openemu.system.fds">Famicom Disk System</system>
@@ -27,33 +26,30 @@
     </systems>
   </core>
 
-  <!-- ✅ universal binary -->
   <core
     id="org.openemu.mgba"
     name="mGBA"
-    appcastURL="https://raw.github.com/OpenEmu/OpenEmu-Update/master/mgba_appcast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/mgba.xml">
     <description>Game Boy Advance emulator</description>
     <systems>
       <system id="openemu.system.gba">Game Boy Advance</system>
     </systems>
   </core>
 
-  <!-- ✅ universal binary -->
   <core
     id="org.openemu.gambatte"
     name="Gambatte"
-    appcastURL="https://raw.github.com/OpenEmu/OpenEmu-Update/master/gambatte_appcast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/gambatte.xml">
     <description>Game Boy / Game Boy Color emulator</description>
     <systems>
       <system id="openemu.system.gb">Game Boy</system>
     </systems>
   </core>
 
-  <!-- ✅ universal binary -->
   <core
     id="org.openemu.genesisplus"
     name="Genesis Plus"
-    appcastURL="https://raw.github.com/OpenEmu/OpenEmu-Update/master/genesisplus_appcast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/genesisplus.xml">
     <description>Genesis Plus GX emulator</description>
     <systems>
       <system id="openemu.system.sg">Sega Genesis/Mega Drive</system>
@@ -64,33 +60,30 @@
     </systems>
   </core>
 
-  <!-- ✅ universal binary -->
   <core
     id="org.openemu.snes9x"
     name="Snes9X"
-    appcastURL="https://raw.github.com/OpenEmu/OpenEmu-Update/master/snes9x_appcast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/snes9x.xml">
     <description>Super Nintendo emulator</description>
     <systems>
       <system id="openemu.system.snes">Super Nintendo (SNES)</system>
     </systems>
   </core>
 
-  <!-- ✅ universal binary -->
   <core
     id="org.openemu.fceu"
     name="FCEU"
-    appcastURL="https://raw.github.com/OpenEmu/OpenEmu-Update/master/fceu_appcast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/fceu.xml">
     <description>Nintendo/Famicom emulator (alternate)</description>
     <systems>
       <system id="openemu.system.nes">Nintendo (NES)</system>
     </systems>
   </core>
 
-  <!-- ✅ universal binary -->
   <core
     id="org.openemu.prosystem"
     name="ProSystem"
-    appcastURL="https://raw.github.com/OpenEmu/OpenEmu-Update/master/prosystem_appcast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/prosystem.xml">
     <description>Atari 7800 emulator</description>
     <systems>
       <system id="openemu.system.7800">Atari 7800</system>
@@ -122,7 +115,7 @@
   <core
     id="org.openemu.ppsspp"
     name="PPSSPP"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/ppsspp.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/ppsspp.xml">
     <description>Sony PSP emulator</description>
     <systems>
       <system id="openemu.system.psp">Sony PSP</system>
@@ -133,7 +126,7 @@
   <core
     id="org.openemu.4DO"
     name="4DO"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/4do.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/4do.xml">
     <description>3DO emulator</description>
     <systems>
       <system id="openemu.system.3do">3DO</system>
@@ -144,7 +137,7 @@
   <core
     id="org.openemu.Atari800"
     name="Atari800"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/atari800.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/atari800.xml">
     <description>Atari 5200 emulator</description>
     <systems>
       <system id="openemu.system.5200">Atari 5200</system>
@@ -156,7 +149,7 @@
   <core
     id="org.openemu.Bliss"
     name="Bliss"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/bliss.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/bliss.xml">
     <description>Intellivision emulator</description>
     <systems>
       <system id="openemu.system.intellivision">Intellivision</system>
@@ -167,7 +160,7 @@
   <core
     id="org.openemu.CrabEmu"
     name="CrabEmu"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/crabemu.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/crabemu.xml">
     <description>Sega Master System and Game Gear emulator</description>
     <systems>
       <system id="openemu.system.sms">Sega Master System</system>
@@ -179,7 +172,7 @@
   <core
     id="org.openemu.desmume"
     name="DeSmuME"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/desmume.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/desmume.xml">
     <description>Nintendo DS emulator</description>
     <systems>
       <system id="openemu.system.nds">Nintendo DS</system>
@@ -190,7 +183,7 @@
   <core
     id="org.openemu.Flycast"
     name="Flycast"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/flycast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/flycast.xml">
     <description>Dreamcast emulator</description>
     <systems>
       <system id="openemu.system.dc">Dreamcast</system>
@@ -201,7 +194,7 @@
   <core
     id="org.openemu.JollyCV"
     name="JollyCV"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/jollycv.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/jollycv.xml">
     <description>ColecoVision emulator</description>
     <systems>
       <system id="openemu.system.colecovision">ColecoVision</system>
@@ -212,7 +205,7 @@
   <core
     id="org.openemu.Mednafen"
     name="Mednafen"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/mednafen.xml">
     <description>Multi-system emulator (PSX, PC Engine, Lynx, WonderSwan, Virtual Boy, Neo Geo Pocket, PC-FX)</description>
     <systems>
       <system id="openemu.system.psx">PlayStation</system>
@@ -230,7 +223,7 @@
   <core
     id="org.openemu.Mupen64Plus"
     name="Mupen64Plus"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mupen64plus.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/mupen64plus.xml">
     <description>Nintendo 64 emulator</description>
     <systems>
       <system id="openemu.system.n64">Nintendo 64</system>
@@ -241,7 +234,7 @@
   <core
     id="org.openemu.O2EM"
     name="O2EM"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/o2em.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/o2em.xml">
     <description>Odyssey² / Videopac emulator</description>
     <systems>
       <system id="openemu.system.odyssey2">Odyssey²</system>
@@ -252,7 +245,7 @@
   <core
     id="org.openemu.PokeMini"
     name="PokeMini"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/pokemini.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/pokemini.xml">
     <description>Pokémon Mini emulator</description>
     <systems>
       <system id="openemu.system.pokemonmini">Pokémon Mini</system>
@@ -263,7 +256,7 @@
   <core
     id="org.openemu.Potator"
     name="Potator"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/potator.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/potator.xml">
     <description>Watara Supervision emulator</description>
     <systems>
       <system id="openemu.system.sv">Supervision</system>
@@ -274,7 +267,7 @@
   <core
     id="org.openemu.Stella"
     name="Stella"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/stella.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/stella.xml">
     <description>Atari 2600 emulator</description>
     <systems>
       <system id="openemu.system.2600">Atari 2600</system>
@@ -285,7 +278,7 @@
   <core
     id="org.openemu.VecXGL"
     name="VecXGL"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/vecxgl.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/vecxgl.xml">
     <description>Vectrex emulator</description>
     <systems>
       <system id="openemu.system.vectrex">Vectrex</system>
@@ -296,7 +289,7 @@
   <core
     id="org.openemu.VirtualJaguar"
     name="VirtualJaguar"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/virtualjaguar.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/virtualjaguar.xml">
     <description>Atari Jaguar emulator</description>
     <systems>
       <system id="openemu.system.jaguar">Atari Jaguar</system>
@@ -307,7 +300,7 @@
   <core
     id="org.openemu.blueMSX"
     name="blueMSX"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/bluemsx.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/bluemsx.xml">
     <description>MSX / MSX2 emulator</description>
     <systems>
       <system id="openemu.system.msx">MSX</system>
@@ -318,7 +311,7 @@
   <core
     id="org.openemu.Picodrive"
     name="Picodrive"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/picodrive.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/fix/core-appcast-hosting/Appcasts/picodrive.xml">
     <description>Sega 32X and Sega CD emulator</description>
     <systems>
       <system id="openemu.system.32x">Sega 32X</system>
