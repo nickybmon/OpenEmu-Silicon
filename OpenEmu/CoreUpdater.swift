@@ -60,6 +60,7 @@ final class CoreUpdater: NSObject {
         
         for plugin in OECorePlugin.allPlugins {
             let download = CoreDownload(plugin: plugin)
+            download.delegate = self
             let bundleID = plugin.bundleIdentifier.lowercased()
             coresDict[bundleID] = download
         }
