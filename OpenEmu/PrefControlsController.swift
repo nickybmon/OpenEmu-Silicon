@@ -229,7 +229,11 @@ final class PrefControlsController: NSViewController {
         if eventMonitor != nil {
             return
         }
-        
+
+        if #available(macOS 10.15, *) {
+            OEDeviceManager.shared.rescanKeyboardDevices()
+        }
+
         eventMonitor = OEDeviceManager.shared.addGlobalEventMonitorHandler { _, event in
             self.registerEventIfNeeded(event)
             return false
