@@ -33,6 +33,9 @@ let OEGameCoreDisplayModeKeyFormat = "displayMode.%@"
 let OEBackgroundPauseKey = "backgroundPause"
 let OEBackgroundControllerPlayKey = "backgroundControllerPlay"
 let OETakeNativeScreenshots = "takeNativeScreenshots"
+let OEGameSaturationKey = "saturation"
+let OEGameGammaKey = "gamma"
+
 
 let OEScreenshotFileFormatKey = "screenshotFormat"
 let OEScreenshotPropertiesKey = "screenshotProperties"
@@ -158,6 +161,9 @@ final class OEGameDocument: NSDocument {
     
     /// Non-nil if ROM was decompressed.
     private var decompressedROMFileURL: URL?
+    
+    var saturation: Float = 1.0
+    var gamma: Float = 1.0
     
     var coreIdentifier: String {
         return corePlugin.bundleIdentifier
@@ -625,6 +631,13 @@ final class OEGameDocument: NSDocument {
                 
                 // set initial volume
                 self.setVolume(self.volume, asDefault: false)
+                
+                // set initial image adjustments
+                let rawSat = UserDefaults.standard.float(forKey: OEGameSaturationKey)
+                self.saturation = rawSat > 0 ? min(rawSat, 2.5) : 1.0
+                let rawGam = UserDefaults.standard.float(forKey: OEGameGammaKey)
+                self.gamma = rawGam > 0 ? min(rawGam, 2.5) : 1.0
+                self.gameCoreHelper?.setGlobalShaderParameters(gamma: CGFloat(self.gamma), saturation: CGFloat(self.saturation))
                 
                 OEBindingsController.default.systemBindings(for: self.systemPlugin.controller).add(self)
                 
@@ -1242,6 +1255,22 @@ final class OEGameDocument: NSDocument {
         
         if defaultFlag {
             UserDefaults.standard.set(volume, forKey: OEGameVolumeKey)
+        }
+    }
+    
+    func setSaturation(_ value: Float, asDefault: Bool) {
+        saturation = max(1.0, min(2.5, value))
+        gameCoreHelper?.setGlobalShaderParameters(gamma: CGFloat(gamma), saturation: CGFloat(saturation))
+        if asDefault {
+            UserDefaults.standard.set(saturation, forKey: OEGameSaturationKey)
+        }
+    }
+    
+    func setGamma(_ value: Float, asDefault: Bool) {
+        gamma = max(1.0, min(2.5, value))
+        gameCoreHelper?.setGlobalShaderParameters(gamma: CGFloat(gamma), saturation: CGFloat(saturation))
+        if asDefault {
+            UserDefaults.standard.set(gamma, forKey: OEGameGammaKey)
         }
     }
     

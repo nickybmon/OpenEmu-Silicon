@@ -54,6 +54,8 @@ public final class FilterChain {
     private var samplers: SamplerFilterArray<MTLSamplerState>
     
     public var hasShader: Bool = false
+    public var globalGamma: Float = 1.0
+    public var globalSaturation: Float = 1.0
     
     private var frameCount: UInt = 0
     private var passCount: Int = 0
@@ -450,16 +452,21 @@ public final class FilterChain {
     }
     
     private func fetchNextHistoryTexture() -> MTLTexture {
-        precondition(historyCount > 0, "Current shader does not require history")
+        let needsAdjustments = globalGamma != 1.0 || globalSaturation != 1.0
         
-        // either no history, or we moved a texture of a different size in the front slot
-        if historyTextures[0].size.x != Float(sourceRect.width) || historyTextures[0].size.y != Float(sourceRect.height) {
+        // either no history, or we moved a texture of a different size in the front slot,
+        // OR we need adjustments (which require a standalone texture to render into).
+        if historyTextures[0].view == nil || 
+           historyTextures[0].size.x != Float(sourceRect.width) || 
+           historyTextures[0].size.y != Float(sourceRect.height) ||
+           needsAdjustments
+        {
             let td = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm,
-                                                              width: Int(sourceRect.width),
-                                                              height: Int(sourceRect.height),
-                                                              mipmapped: false)
+                                                               width: Int(sourceRect.width),
+                                                               height: Int(sourceRect.height),
+                                                               mipmapped: false)
             td.storageMode = .private
-            td.usage = [.shaderRead, .shaderWrite]
+            td.usage = [.shaderRead, .shaderWrite, .renderTarget]
             initTexture(&historyTextures[0], withDescriptor: td)
         }
         
@@ -473,8 +480,10 @@ public final class FilterChain {
         updateHistory()
         clearTexturesWithCommandBuffer(commandBuffer)
         
-        if historyCount == 0 {
-            // No need to copy, set the sourceTexture to Original / OriginalHistory0 semantic
+        let needsAdjustments = globalGamma != 1.0 || globalSaturation != 1.0
+        
+        if historyCount == 0 && !needsAdjustments {
+            // No need to copy or adjust, set the sourceTexture to Original / OriginalHistory0 semantic
             initTexture(&historyTextures[0], withTexture: sourceTexture)
         } else {
             let texture = fetchNextHistoryTexture()
@@ -483,10 +492,52 @@ public final class FilterChain {
             let size = MTLSize(width: Int(sourceRect.width), height: Int(sourceRect.height), depth: 1)
             let zero = MTLOrigin()
             
-            if let bce = commandBuffer.makeBlitCommandEncoder() {
-                bce.copy(from: sourceTexture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: orig, sourceSize: size,
-                         to: texture, destinationSlice: 0, destinationLevel: 0, destinationOrigin: zero)
-                bce.endEncoding()
+            if needsAdjustments {
+                // Apply Gamma/Saturation during the initial copy into historyTextures[0]
+                // This ensures all subsequent shader passes see the adjusted colors.
+                let rpd = MTLRenderPassDescriptor()
+                rpd.colorAttachments[0].texture = texture
+                rpd.colorAttachments[0].loadAction = .dontCare
+                rpd.colorAttachments[0].storeAction = .store
+                
+                if let rce = commandBuffer.makeRenderCommandEncoder(descriptor: rpd) {
+                    // ── Calculate UVs to match sourceRect ─────────────────
+                    let tw = Float(sourceTexture.width)
+                    let th = Float(sourceTexture.height)
+                    let u0 = Float(sourceRect.origin.x) / tw
+                    let v0 = Float(sourceRect.origin.y) / th
+                    let u1 = Float(sourceRect.origin.x + sourceRect.size.width) / tw
+                    let v1 = Float(sourceRect.origin.y + sourceRect.size.height) / th
+                    
+                    let prepVertex = [
+                        Vertex(position: .init(0, 1, 0, 1), texCoord: .init(u0, v1)),
+                        Vertex(position: .init(1, 1, 0, 1), texCoord: .init(u1, v1)),
+                        Vertex(position: .init(0, 0, 0, 1), texCoord: .init(u0, v0)),
+                        Vertex(position: .init(1, 0, 0, 1), texCoord: .init(u1, v0)),
+                    ]
+                    
+                    var prepUniforms = Uniforms.empty
+                    prepUniforms.projectionMatrix = .makeOrtho(left: 0, right: 1, top: 0, bottom: 1)
+                    prepUniforms.gamma = globalGamma
+                    prepUniforms.saturation = globalSaturation
+                    prepUniforms.outputSize = .init(Float(texture.width), Float(texture.height))
+                    
+                    rce.setVertexBytes(&prepUniforms, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
+                    rce.setFragmentBytes(&prepUniforms, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
+                    rce.setVertexBytes(prepVertex, length: MemoryLayout<Vertex>.stride * 4, index: BufferIndex.positions.rawValue)
+                    rce.setRenderPipelineState(pipelineState)
+                    rce.setFragmentSamplerState(samplers[.nearest][.edge], index: SamplerIndex.draw.rawValue)
+                    rce.setViewport(MTLViewport(originX: 0, originY: 0, width: Double(texture.width), height: Double(texture.height), znear: 0, zfar: 1))
+                    rce.setFragmentTexture(sourceTexture, index: TextureIndex.color.rawValue)
+                    rce.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+                    rce.endEncoding()
+                }
+            } else {
+                if let bce = commandBuffer.makeBlitCommandEncoder() {
+                    bce.copy(from: sourceTexture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: orig, sourceSize: size,
+                             to: texture, destinationSlice: 0, destinationLevel: 0, destinationOrigin: zero)
+                    bce.endEncoding()
+                }
             }
         }
     }
@@ -517,7 +568,10 @@ public final class FilterChain {
     }
     
     private func renderTexture(_ texture: MTLTexture, renderCommandEncoder rce: MTLRenderCommandEncoder) {
+        uniforms.gamma = globalGamma
+        uniforms.saturation = globalSaturation
         rce.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
+        rce.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
         rce.setRenderPipelineState(pipelineState)
         rce.setFragmentSamplerState(samplers[.nearest][.edge], index: SamplerIndex.draw.rawValue)
         rce.setViewport(outputFrame.viewport)
@@ -670,7 +724,9 @@ public final class FilterChain {
             os_log("pass %d, render target size %0.0f x %0.0f", log: .default, type: .debug, i, passSize.width, passSize.height)
             
             let fmt = self.pass[i].format
-            if i == lastPassIndex, passSize == viewportSize, fmt == .bgra8Unorm {
+            // Always force offscreen rendering so adjustments (gamma/saturation)
+            // are always applied via renderTexture even with custom shaders.
+            if false /* was: i == lastPassIndex, passSize == viewportSize, fmt == .bgra8Unorm */ {
                 // last pass can render directly to the output render target
                 self.pass[i].renderTarget.size = .init(width: passSize.width, height: passSize.height)
             } else {
@@ -1069,11 +1125,15 @@ extension FilterChain {
     }
     
     @frozen @usableFromInline struct Uniforms {
-        static let empty: Uniforms = .init(projectionMatrix: simd_float4x4(), outputSize: simd_float2(), time: 0)
+        static let empty: Uniforms = .init(projectionMatrix: simd_float4x4(), outputSize: simd_float2(), time: 0, gamma: 1.0, saturation: 1.0, padding1: 0, padding2: simd_float2(0,0))
         
-        var projectionMatrix: simd_float4x4
-        var outputSize: simd_float2
-        var time: simd_float1
+        var projectionMatrix: simd_float4x4 // 64 bytes
+        var outputSize: simd_float2         // 8 bytes
+        var time: simd_float1               // 4 bytes
+        var gamma: simd_float1              // 4 bytes
+        var saturation: simd_float1         // 4 bytes
+        var padding1: simd_float1           // 4 bytes, to align to 16 bytes. Total = 88 bytes. Need 8 for layout alignment
+        var padding2: simd_float2           // 8 bytes. Total = 96 bytes. (Matches stride)
     }
 }
 

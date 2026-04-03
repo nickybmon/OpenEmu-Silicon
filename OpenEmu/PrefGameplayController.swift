@@ -31,6 +31,14 @@ final class PrefGameplayController: NSViewController {
     
     private var token: NSObjectProtocol?
     
+    // Injected slider controls (nil until viewDidAppear)
+    private var saturationSlider: NSSlider?
+    private var saturationLabel:  NSTextField?
+    private var gammaSlider:      NSSlider?
+    private var gammaLabel:       NSTextField?
+
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -43,10 +51,128 @@ final class PrefGameplayController: NSViewController {
         }
     }
     
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        guard saturationSlider == nil else { return }
+        addSliders()
+    }
+    
     deinit {
         if let token = token {
             NotificationCenter.default.removeObserver(token)
             self.token = nil
+        }
+    }
+    
+    // MARK: - Slider injection
+
+    private func addSliders() {
+        let rawSat = UserDefaults.standard.float(forKey: OEGameSaturationKey)
+        let sat: Float = rawSat > 0 ? min(rawSat, 2.5) : 1.0
+        let rawGam = UserDefaults.standard.float(forKey: OEGameGammaKey)
+        let gam: Float = rawGam > 0 ? min(rawGam, 2.5) : 1.0
+
+        let rowH:   CGFloat = 24
+        let gap:    CGFloat = 12
+        let extraH: CGFloat = gap + rowH + gap + rowH + gap
+        let extraW: CGFloat = 140
+
+        // ── Grow the view ─────────────────────────────────────────────────
+        view.setFrameSize(NSSize(width: view.frame.width + extraW,
+                                 height: view.frame.height + extraH))
+
+        for sv in view.subviews {
+            sv.setFrameOrigin(NSPoint(x: sv.frame.origin.x,
+                                      y: sv.frame.origin.y + extraH))
+        }
+
+        // ── Grow the window to match ───────────────────────────────────────
+        if let window = view.window {
+            var wf = window.frame
+            wf.origin.y    -= extraH
+            wf.size.height += extraH
+            wf.size.width  += extraW
+            window.setFrame(wf, display: true, animate: false)
+        }
+
+        let shaderX = globalDefaultShaderSelection.frame.minX
+        let rowW    = view.frame.width - shaderX - 20
+
+        let gamY = gap
+        let satY = gap + rowH + gap
+
+        let (satView, satSlider, satLbl) = makeRow(
+            label: "Saturation:", value: sat,
+            frame: NSRect(x: shaderX, y: satY, width: rowW, height: rowH),
+            action: #selector(saturationChanged(_:))
+        )
+        let (gamView, gamSlider, gamLbl) = makeRow(
+            label: "Gamma:", value: gam,
+            frame: NSRect(x: shaderX, y: gamY, width: rowW, height: rowH),
+            action: #selector(gammaChanged(_:))
+        )
+
+        view.addSubview(satView)
+        view.addSubview(gamView)
+
+        saturationSlider = satSlider
+        saturationLabel  = satLbl
+        gammaSlider      = gamSlider
+        gammaLabel       = gamLbl
+    }
+
+    private func makeRow(
+        label: String, value: Float,
+        frame: NSRect, action: Selector
+    ) -> (NSView, NSSlider, NSTextField) {
+
+        let container = NSView(frame: frame)
+
+        let labelW: CGFloat = 80
+        let pctW:   CGFloat = 44
+        let sliderW = frame.width - labelW - pctW - 8
+
+        let lbl = NSTextField(labelWithString: label)
+        lbl.font  = .systemFont(ofSize: NSFont.systemFontSize)
+        lbl.frame = NSRect(x: 0, y: 0, width: labelW, height: frame.height)
+        container.addSubview(lbl)
+
+        let slider = NSSlider(value: Double(value), minValue: 1.0, maxValue: 2.5,
+                              target: self, action: action)
+        slider.isContinuous = true
+        slider.frame = NSRect(x: labelW + 4, y: 0, width: sliderW, height: frame.height)
+        container.addSubview(slider)
+
+        let pct = NSTextField(
+            labelWithString: String(format: "%.0f%%", value * 100))
+        pct.font  = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize - 1,
+                                               weight: .regular)
+        pct.frame = NSRect(x: labelW + 4 + sliderW + 4, y: 0,
+                           width: pctW, height: frame.height)
+        container.addSubview(pct)
+
+        return (container, slider, pct)
+    }
+
+    // MARK: - Slider actions
+
+    @objc private func saturationChanged(_ sender: NSSlider) {
+        let v = sender.floatValue
+        saturationLabel?.stringValue = String(format: "%.0f%%", v * 100)
+        UserDefaults.standard.set(v, forKey: OEGameSaturationKey)
+        
+        NSDocumentController.shared.documents.forEach {
+            ($0 as? OEGameDocument)?.setSaturation(v, asDefault: true)
+        }
+    }
+
+    @objc private func gammaChanged(_ sender: NSSlider) {
+        let v = sender.floatValue
+        gammaLabel?.stringValue = String(format: "%.0f%%", v * 100)
+        UserDefaults.standard.set(v, forKey: OEGameGammaKey)
+        
+        NSDocumentController.shared.documents.forEach {
+            ($0 as? OEGameDocument)?.setGamma(v, asDefault: true)
         }
     }
     
@@ -98,5 +224,5 @@ extension PrefGameplayController: PreferencePane {
     
     var panelTitle: String { "Gameplay" }
     
-    var viewSize: NSSize { view.fittingSize }
+    var viewSize: NSSize { view.frame.size }
 }

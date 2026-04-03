@@ -236,4 +236,86 @@ final class GameControlsBarView: NSView {
     func reflectVolume(_ volume: Float) {
         slider.animator().floatValue = volume
     }
+
+    // MARK: - Image Adjustments Popover
+
+    @objc func showAdjustmentsPopoverFromMenu(_ sender: Any?) {
+        // Anchor to the center of the bar
+        let anchorRect = NSRect(x: bounds.midX - 1, y: bounds.maxY - 5, width: 2, height: 2)
+        showAdjustmentsPopover(anchoredTo: anchorRect)
+    }
+
+    private func showAdjustmentsPopover(anchoredTo rect: NSRect) {
+        let popover = NSPopover()
+        popover.behavior = .transient
+        
+        let vc = NSViewController()
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 100))
+        
+        let doc = (window?.parent?.windowController?.document as? OEGameDocument)
+        let sat = doc?.saturation ?? 1.0
+        let gam = doc?.gamma ?? 1.0
+
+        let (satView, _, satLbl) = makeAdjustmentRow(
+            label: "Saturation:", value: sat, y: 55, width: 260,
+            action: #selector(saturationChanged(_:))
+        )
+        let (gamView, _, gamLbl) = makeAdjustmentRow(
+            label: "Gamma:", value: gam, y: 15, width: 260,
+            action: #selector(gammaChanged(_:))
+        )
+        
+        container.addSubview(satView)
+        container.addSubview(gamView)
+        vc.view = container
+        popover.contentViewController = vc
+        popover.show(relativeTo: rect, of: self, preferredEdge: .maxY)
+    }
+
+    private func makeAdjustmentRow(label: String, value: Float, y: CGFloat, width: CGFloat, action: Selector) -> (NSView, NSSlider, NSTextField) {
+        let row = NSView(frame: NSRect(x: 10, y: y, width: width, height: 30))
+        let lbl = NSTextField(labelWithString: label)
+        lbl.frame = NSRect(x: 0, y: 5, width: 80, height: 20)
+        row.addSubview(lbl)
+        
+        let slider = NSSlider(value: Double(value), minValue: 1.0, maxValue: 2.5, target: self, action: action)
+        slider.frame = NSRect(x: 80, y: 5, width: 130, height: 20)
+        slider.isContinuous = true
+        row.addSubview(slider)
+        
+        let valLbl = NSTextField(labelWithString: String(format: "%.0f%%", value * 100))
+        valLbl.frame = NSRect(x: 215, y: 5, width: 45, height: 20)
+        valLbl.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
+        row.addSubview(valLbl)
+        
+        return (row, slider, valLbl)
+    }
+
+    @objc private func saturationChanged(_ sender: NSSlider) {
+        let v = sender.floatValue
+        if let row = sender.superview {
+            for sv in row.subviews {
+                if let tf = sv as? NSTextField, tf.stringValue.contains("%") {
+                    tf.stringValue = String(format: "%.0f%%", v * 100)
+                }
+            }
+        }
+        NSDocumentController.shared.documents.forEach {
+            ($0 as? OEGameDocument)?.setSaturation(v, asDefault: true)
+        }
+    }
+
+    @objc private func gammaChanged(_ sender: NSSlider) {
+        let v = sender.floatValue
+        if let row = sender.superview {
+            for sv in row.subviews {
+                if let tf = sv as? NSTextField, tf.stringValue.contains("%") {
+                    tf.stringValue = String(format: "%.0f%%", v * 100)
+                }
+            }
+        }
+        NSDocumentController.shared.documents.forEach {
+            ($0 as? OEGameDocument)?.setGamma(v, asDefault: true)
+        }
+    }
 }

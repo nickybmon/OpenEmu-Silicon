@@ -65,6 +65,7 @@ import AudioToolbox
     
     /// Controls whether the renderer should use a variable refresh rate.
     func setAdaptiveSyncEnabled(_ enabled: Bool)
+    func setGlobalShaderParameters(gamma: CGFloat, saturation: CGFloat)
     func setShaderURL(_ url: URL, parameters: [String: NSNumber]?, completionHandler block: @escaping (Error?) -> Void)
     func setShaderParameterValue(_ value: CGFloat, forKey key: String)
     func setupEmulation(completionHandler handler: @escaping (_ screenSize: OEIntSize, _ aspectSize: OEIntSize) -> Void)
