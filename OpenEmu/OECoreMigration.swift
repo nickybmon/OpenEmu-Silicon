@@ -24,17 +24,19 @@
 
 import AppKit
 
-/// Moves Intel-only (x86_64) cores from the user's OpenEmu cores directory
-/// to a `Legacy/` subdirectory on the first launch of OpenEmu-Silicon.
+/// Scans the user's OpenEmu cores directory on every launch and moves any
+/// Intel-only (x86_64) core bundles to a `Legacy/` subdirectory.
 ///
-/// This prevents old x86-only cores installed by the original OpenEmu app from
-/// conflicting with or shadowing the bundled ARM64 cores.
+/// This prevents x86-only cores (from a previous OpenEmu installation, a backup
+/// restore, or a UserDefaults reset) from conflicting with ARM64 cores and
+/// causing "doesn't contain a version for the current architecture" errors.
 ///
-/// Runs exactly once, guarded by the `OEDidRemoveStaleX86Cores` UserDefaults key.
+/// Runs on every launch — the scan is lightweight (one pass over the Cores
+/// directory) and is a no-op when no x86_64-only cores are present.
+/// ARM64 replacements are downloaded automatically by the `checkForNewCores()`
+/// call that follows in AppDelegate.
 /// Call `runIfNeeded()` before `loadPlugins(with:)` in AppDelegate.
 enum OECoreMigration {
-
-    private static let didRunKey = "OEDidRemoveStaleX86Cores"
 
     private static var coresDirectory: URL {
         let paths = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true)
@@ -43,8 +45,6 @@ enum OECoreMigration {
     }
 
     static func runIfNeeded() {
-        guard !UserDefaults.standard.bool(forKey: didRunKey) else { return }
-        defer { UserDefaults.standard.set(true, forKey: didRunKey) }
 
         let fm = FileManager.default
         let cores = coresDirectory
@@ -83,10 +83,12 @@ enum OECoreMigration {
             alert.messageText = "Legacy Cores Moved"
             alert.informativeText = """
                 OpenEmu-Silicon found \(movedCores.count == 1 ? "an Intel-only core" : "\(movedCores.count) Intel-only cores") \
-                from a previous OpenEmu installation and moved \(movedCores.count == 1 ? "it" : "them") to \
-                ~/Library/Application Support/OpenEmu/Cores/Legacy/ to avoid conflicts with the ARM64 cores built into this app.
+                that cannot run on Apple Silicon and moved \(movedCores.count == 1 ? "it" : "them") to \
+                ~/Library/Application Support/OpenEmu/Cores/Legacy/.
 
                 Moved: \(movedCores.joined(separator: ", "))
+
+                ARM64 replacements will download automatically.
                 """
             alert.alertStyle = .informational
             alert.addButton(withTitle: "OK")
