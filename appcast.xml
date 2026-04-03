@@ -6,6 +6,31 @@
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
     <item>
+      <title>OpenEmu-Silicon 1.0.2</title>
+      <description>
+        <![CDATA[
+        <h2>OpenEmu-Silicon 1.0.2</h2>
+        <p>Stability and UX improvements.</p>
+        <ul>
+          <li><strong>Fixed:</strong> Duplicate cores in Preferences → Cores (Mednafen, Mupen64Plus, Atari800, and others appearing twice)</li>
+          <li><strong>Fixed:</strong> "doesn't contain a version for the current architecture" error — Intel-only cores from a previous install or backup are now removed automatically on every launch, with ARM64 versions downloading automatically</li>
+          <li><strong>Fixed:</strong> Setup Assistant hang when 4DO or DeSmuME were selected during first-launch core download</li>
+          <li><strong>Improved:</strong> Sidebar now hides systems with no installed core and no games, keeping the library clean on fresh installs</li>
+          <li><strong>Improved:</strong> 4DO and DeSmuME now show a greyed "Unavailable" button in Preferences → Cores instead of a broken Install button</li>
+        </ul>
+        ]]>
+      </description>
+      <pubDate>Thu, 03 Apr 2026 00:00:00 +0000</pubDate>
+      <sparkle:minimumSystemVersion>11.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/nickybmon/OpenEmu-Silicon/releases/download/v1.0.2/OpenEmu-Silicon.dmg"
+        sparkle:version="3"
+        sparkle:shortVersionString="1.0.2"
+        sparkle:edSignature="DlrQ2QIumrKgksQoaR03ZqI7yMkDPLUoXlkswvTPxff+Vp3WH6UMmT+qcOotgl/8jWA8cuIvixSZ2v1/lptQCA=="
+        length="43809309"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>OpenEmu-Silicon 1.0.1</title>
       <description>
         <![CDATA[
