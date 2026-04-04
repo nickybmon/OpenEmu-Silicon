@@ -30,6 +30,8 @@ final class GameControlsBarView: NSView {
     private var fullScreenButton: NSButton!
     private var pauseButton: NSButton!
     private weak var adjustmentsPopover: NSPopover?
+    private weak var satAdjustLabel: NSTextField?
+    private weak var gamAdjustLabel: NSTextField?
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -256,7 +258,10 @@ final class GameControlsBarView: NSView {
         self.adjustmentsPopover = popover
         
         let vc = NSViewController()
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 100))
+        let rowHeight: CGFloat = 30
+        let rowGap: CGFloat = 15
+        let popoverHeight = rowGap + rowHeight + rowGap + rowHeight + rowGap  // gap + sat row + gap + gam row + gap
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: popoverHeight))
         
         let doc = (window?.parent?.windowController?.document as? OEGameDocument)
         let sat = doc?.imageSaturation ?? 1.0
@@ -270,7 +275,9 @@ final class GameControlsBarView: NSView {
             label: "Gamma:", value: gam, minValue: 0.5, maxValue: 2.0, y: 15, width: 260,
             action: #selector(gammaChanged(_:))
         )
-        
+        satAdjustLabel = satLbl
+        gamAdjustLabel = gamLbl
+
         container.addSubview(satView)
         container.addSubview(gamView)
         vc.view = container
@@ -299,13 +306,7 @@ final class GameControlsBarView: NSView {
 
     @objc private func saturationChanged(_ sender: NSSlider) {
         let v = OEGameDocument.clampedSaturation(sender.floatValue)
-        if let row = sender.superview {
-            for sv in row.subviews {
-                if let tf = sv as? NSTextField, tf.stringValue.contains("%") {
-                    tf.stringValue = String(format: "%.0f%%", v * 100)
-                }
-            }
-        }
+        satAdjustLabel?.stringValue = String(format: "%.0f%%", v * 100)
         NSDocumentController.shared.documents.forEach {
             ($0 as? OEGameDocument)?.setSaturation(v, asDefault: true)
         }
@@ -313,13 +314,7 @@ final class GameControlsBarView: NSView {
 
     @objc private func gammaChanged(_ sender: NSSlider) {
         let v = OEGameDocument.clampedGamma(sender.floatValue)
-        if let row = sender.superview {
-            for sv in row.subviews {
-                if let tf = sv as? NSTextField, tf.stringValue.contains("%") {
-                    tf.stringValue = String(format: "%.0f%%", v * 100)
-                }
-            }
-        }
+        gamAdjustLabel?.stringValue = String(format: "%.0f%%", v * 100)
         NSDocumentController.shared.documents.forEach {
             ($0 as? OEGameDocument)?.setGamma(v, asDefault: true)
         }

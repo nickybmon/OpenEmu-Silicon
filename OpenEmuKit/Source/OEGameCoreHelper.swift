@@ -54,7 +54,7 @@ import AudioToolbox
     /** Specifies how and when shader effects are rendered.
      *
      * Shader effects are normally paused when the core is paused. This
-     * API allows futher control over when the effects are rendered.
+     * API allows further control over when the effects are rendered.
      *
      * @param mode Determines how and when shader effects are rendered.
      */

@@ -67,10 +67,8 @@ final class PrefGameplayController: NSViewController {
     // MARK: - Slider injection
 
     private func addSliders() {
-        let rawSat = UserDefaults.standard.float(forKey: OEGameSaturationKey)
-        let sat: Float = rawSat >= 0.5 ? OEGameDocument.clampedSaturation(rawSat) : 1.0
-        let rawGam = UserDefaults.standard.float(forKey: OEGameGammaKey)
-        let gam: Float = rawGam >= 0.5 ? OEGameDocument.clampedGamma(rawGam) : 1.0
+        let sat = OEGameDocument.clampedSaturation((UserDefaults.standard.object(forKey: OEGameSaturationKey) as? Float) ?? 1.0)
+        let gam = OEGameDocument.clampedGamma((UserDefaults.standard.object(forKey: OEGameGammaKey) as? Float) ?? 1.0)
 
         let rowH:   CGFloat = 24
         let gap:    CGFloat = 12
