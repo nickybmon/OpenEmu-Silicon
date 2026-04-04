@@ -2,14 +2,14 @@
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of the OpenEmu Team nor the
-//       names of its contributors may be used to endorse or promote products
-//       derived from this software without specific prior written permission.
+// * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// * Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+// * Neither the name of the OpenEmu Team nor the
+// names of its contributors may be used to endorse or promote products
+// derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY OpenEmu Team ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -26,17 +26,17 @@ import Foundation
 import OpenEmuSystem
 
 final class GameInfoHelper {
-    
+
     static let shared = GameInfoHelper()
-    
+
     var database: OpenVGDB? {
         return OpenVGDB.shared.isAvailable ? OpenVGDB.shared : nil
     }
-    
+
     func gameInfo(withDictionary gameInfo: [String : Any]) -> [String : Any] {
-        
+
         DispatchQueue(label: "org.openemu.OpenEmu.GameInfoHelper").sync {
-            
+
             lazy var resultDict: [String : Any] = [:]
 
             let systemIdentifier = gameInfo["systemIdentifier"] as! String
@@ -45,296 +45,332 @@ final class GameInfoHelper {
             let md5 = gameInfo["md5"] as? String
             let url = gameInfo["URL"] as? URL
 
-            // ── Priority 1: ScreenScraper (if credentials exist) ───────────────
+            // Determine ScreenScraper credentials once, used throughout this function.
             let ssUsername = UserDefaults.standard.string(forKey: "ScreenScraperUsername") ?? ""
             let ssPassword = ScreenScraperCredentials.storedPassword() ?? ""
             let hasSScredentials = !ssUsername.isEmpty && !ssPassword.isEmpty
-            
-            if hasSScredentials {
-                let romName = url.map { ($0.lastPathComponent as NSString).deletingPathExtension }
-                if let ss = ScreenScraperClient.shared.fetchGameInfo(
-                    md5: md5,
-                    romName: romName,
-                    systemIdentifier: systemIdentifier
-                ) {
-                    if let boxURL = ss.boxImageURL {
-                        // Success! Return immediately with Scraper art.
-                        var ssResult: [String: Any] = ["boxImageURL": boxURL.absoluteString]
-                        if let title = ss.gameTitle { ssResult["gameTitle"] = title }
-                        if let desc = ss.gameDescription { ssResult["gameDescription"] = desc }
-                        if let md5 = md5 { ssResult["md5"] = md5.uppercased() }
-                        return ssResult
-                    }
+
+            guard let database = database else {
+                // OpenVGDB unavailable.
+                // Priority 1: ScreenScraper when the user has credentials configured.
+                // If they have NOT logged in to ScreenScraper we return empty here;
+                // fuzzy logic requires OpenVGDB, so there is nothing else we can do.
+                guard hasSScredentials else { return [:] }
+
+                // FIX: preserve the file extension so ScreenScraper can disambiguate
+                // ROMs that share the same name across platforms (e.g. .n64 vs .sfc).
+                let romName = url?.lastPathComponent
+                var fallback: [String: Any] = [:]
+                if let ss = ScreenScraperClient.shared.fetchGameInfo(md5: md5, romName: romName, systemIdentifier: systemIdentifier) {
+                    if let boxURL = ss.boxImageURL { fallback["boxImageURL"] = boxURL.absoluteString }
+                    if let title = ss.gameTitle   { fallback["gameTitle"] = title }
+                    if let desc  = ss.gameDescription { fallback["gameDescription"] = desc }
                 }
+                return fallback
             }
 
-            // ── Priority 2: OpenVGDB (Local Backup) ────────────────────────────
-            guard let database = database else {
-                NSLog("[OpenEmu] OpenVGDB database NOT available for metadata lookup.")
-                return [:]
-            }
-            
-            NSLog("[OpenEmu] Starting metadata lookup for: \(url?.lastPathComponent ?? "unknown") (MD5: \(md5 ?? "none"))")
+            // --- OpenVGDB is available below this point ---
+
             let archiveFileIndex = gameInfo["archiveFileIndex"] as? NSNumber
-            
+
             var isSystemWithHashlessROM = hashlessROMCheck(forSystem: systemIdentifier)
-            var isSystemWithROMHeader = headerROMCheck(forSystem: systemIdentifier)
-            var isSystemWithROMSerial = serialROMCheck(forSystem: systemIdentifier)
-            var headerSize = sizeOfROMHeader(forSystem: systemIdentifier)
-            
-            let DBMD5Key = "romHashMD5"
-            let DBROMExtensionlessFileNameKey = "romExtensionlessFileName"
-            let DBROMHeaderKey = "romHeader"
-            let DBROMSerialKey = "romSerial"
-            
+            var isSystemWithROMHeader   = headerROMCheck(forSystem: systemIdentifier)
+            var isSystemWithROMSerial   = serialROMCheck(forSystem: systemIdentifier)
+            var headerSize              = sizeOfROMHeader(forSystem: systemIdentifier)
+
+            let DBMD5Key                       = "romHashMD5"
+            let DBROMExtensionlessFileNameKey   = "romExtensionlessFileName"
+            let DBROMHeaderKey                 = "romHeader"
+            let DBROMSerialKey                 = "romSerial"
+
             var key: String?
             var value: String?
-            
+
             let determineQueryParams: (() -> Void) = {
-                
-                if value != nil {
-                    return
-                }
-                
-                // check if the system is 'hashless' in the db and instead match by filename (Arcade)
-                if isSystemWithHashlessROM,
-                   let url = url {
-                    key = DBROMExtensionlessFileNameKey
+
+                if value != nil { return }
+
+                if isSystemWithHashlessROM, let url = url {
+                    key   = DBROMExtensionlessFileNameKey
                     value = (url.lastPathComponent as NSString).deletingPathExtension.lowercased()
                 }
-                // check if the system has headers in the db and instead match by header
                 else if isSystemWithROMHeader {
-                    key = DBROMHeaderKey
+                    key   = DBROMHeaderKey
                     value = header?.uppercased()
                 }
-                // check if the system has serials in the db and instead match by serial
                 else if isSystemWithROMSerial {
-                    key = DBROMSerialKey
+                    key   = DBROMSerialKey
                     value = serial?.uppercased()
                 }
-                // if rom has no header we can use the hash we calculated at import
                 else if headerSize == 0, let md5 = md5 {
-                    key = DBMD5Key
+                    key   = DBMD5Key
                     value = md5.uppercased()
                 }
             }
-            
+
             determineQueryParams()
-            
-            if value == nil,
-               let url = url {
-                
+
+            if value == nil, let url = url {
+
                 var removeFile = false
                 var romURL: URL
                 if let archiveFileIndex = archiveFileIndex as? Int,
                    let archiveURL = ArchiveHelper.decompressFileInArchive(at: url, atIndex: archiveFileIndex) {
-                    romURL = archiveURL
+                    romURL     = archiveURL
                     removeFile = true
                 } else {
-                    // rom is no archive, use original file URL
                     romURL = url
                 }
-                
+
                 var file: OEFile
                 do {
                     file = try OEFile(url: romURL)
                 } catch {
                     return [:]
                 }
-                
+
                 let headerFound = OEDBSystem.header(for: file, forSystem: systemIdentifier)
                 let serialFound = OEDBSystem.serial(for: file, forSystem: systemIdentifier)
-                
+
                 if headerFound == nil && serialFound == nil {
-                    
                     if let md5 = try? FileManager.default.hashFile(at: romURL, fileOffset: Int(headerSize)) {
-                        key = DBMD5Key
-                        value = md5.uppercased()
+                        key             = DBMD5Key
+                        value           = md5.uppercased()
                         resultDict["md5"] = value
                     }
-                }
-                else {
+                } else {
                     if let headerFound = headerFound {
-                        header = headerFound
+                        header              = headerFound
                         resultDict["header"] = headerFound
                     }
                     if let serialFound = serialFound {
-                        serial = serialFound
+                        serial              = serialFound
                         resultDict["serial"] = serialFound
                     }
-                    
                     determineQueryParams()
                 }
-                
+
                 if removeFile {
                     try? FileManager.default.removeItem(at: romURL)
                 }
             }
-            
+
             if value == nil {
-                // Still nothing to look up, force determineQueryParams to use hashes
                 isSystemWithHashlessROM = false
-                isSystemWithROMHeader = false
-                isSystemWithROMSerial = false
-                headerSize = 0
-                
+                isSystemWithROMHeader   = false
+                isSystemWithROMSerial   = false
+                headerSize              = 0
                 determineQueryParams()
             }
-            
-            guard let key = key, let value = value else {
-                NSLog("[OpenEmu] No search criteria for metadata lookup.")
-                return [:]
-            }
-            
+
+            guard let key = key, let value = value else { return [:] }
+
+            // --- Primary exact-match lookup ---
             let sql = """
-                SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'\
-                FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)\
-                WHERE \(key) = '\(value)'
+            SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'
+            FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)
+            WHERE \(key) = '\(value)'
             """
-            
-            // ── Fuzzy Fallback ─────
+
             var results = (try? database.executeQuery(sql)) ?? []
-            
-            let missingArt = results.first?["boxImageURL"] == nil || (results.first?["boxImageURL"] as? String)?.isEmpty == true
-            if (results.isEmpty || missingArt), let url = url {
-                let romName = (url.lastPathComponent as NSString).deletingPathExtension
-                let cleanedName = romName
-                    .replacingOccurrences(of: " \\([^)]*\\)", with: "", options: .regularExpression)
-                    .replacingOccurrences(of: " \\[^\\]]*\\]", with: "", options: .regularExpression)
-                
-                let words = cleanedName.components(separatedBy: CharacterSet.alphanumerics.inverted)
-                    .filter { $0.count >= 2 }
-                
-                if !words.isEmpty {
-                    // Pass 1: Full word-match (AND logic)
-                    let whereClause = words.map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
-                    let fallbackSql = """
-                        SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'\
-                        FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)\
-                        WHERE \(whereClause) AND rom.systemID = (SELECT systemID FROM SYSTEMS WHERE systemoeid = '\(systemIdentifier)')\
-                        AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''\
+
+            // --- Region preference ---
+            var result: [String : Any]? = pickPreferredRegion(from: results)
+
+            if var picked = result {
+                picked.removeValue(forKey: "region")
+                resultDict.merge(picked) { (_, new) in new }
+            }
+
+            // --- ScreenScraper (Priority 1 when user is logged in) ---
+            // Only runs when the user HAS configured SS credentials.
+            // Users who have NOT logged in to ScreenScraper go through the
+            // advanced fuzzy path below instead.
+            if hasSScredentials {
+                // FIX: pass full filename (including extension) so ScreenScraper
+                // can differentiate ROMs sharing names across systems.
+                let romName = url?.lastPathComponent
+                if let ss = ScreenScraperClient.shared.fetchGameInfo(
+                    md5: md5,
+                    romName: romName,
+                    systemIdentifier: systemIdentifier
+                ) {
+                    if let boxURL = ss.boxImageURL {
+                        resultDict["boxImageURL"] = boxURL.absoluteString
+                    }
+                    if resultDict["gameTitle"] == nil, let title = ss.gameTitle {
+                        resultDict["gameTitle"] = title
+                    }
+                    if resultDict["gameDescription"] == nil, let desc = ss.gameDescription {
+                        resultDict["gameDescription"] = desc
+                    }
+                }
+                // ScreenScraper handled it; no need for fuzzy fallback.
+                return resultDict
+            }
+
+            // --- Advanced fuzzy fallback (only for users NOT logged in to ScreenScraper) ---
+            // Runs when: hasSScredentials == false
+            // i.e., the user has not provided ScreenScraper credentials, so we do our
+            // best with OpenVGDB fuzzy matching instead of leaving them with nothing.
+            let missingBoxArt = resultDict["boxImageURL"] == nil
+                             || (resultDict["boxImageURL"] as? String)?.isEmpty == true
+
+            if missingBoxArt, let url = url {
+                let rawName     = (url.lastPathComponent as NSString).deletingPathExtension
+                let cleanedName = cleanROMName(rawName)
+
+                // Pass 1 – full word AND match
+                if results.isEmpty || missingBoxArt {
+                    let words = cleanedName
+                        .components(separatedBy: .whitespaces)
+                        .filter { $0.count > 1 }
+                    if !words.isEmpty {
+                        let conditions = words.map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
+                        let fuzzySql = """
+                        SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'
+                        FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)
+                        WHERE \(conditions)
+                          AND romSystemID IN (SELECT systemID FROM SYSTEMS WHERE systemOEID = '\(systemIdentifier)')
+                          AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''
                         LIMIT 5
-                    """
-                    results = (try? database.executeQuery(fallbackSql)) ?? []
-                    
-                    // Pass 2: Compilation Splitter (Detects + or &)
-                    if results.isEmpty {
-                        let separators = CharacterSet(charactersIn: "+&-")
-                        let parts = cleanedName.components(separatedBy: separators)
-                            .map { $0.trimmingCharacters(in: .whitespaces) }
-                            .filter { $0.count > 5 } // Only search for significant strings
-                        
-                        for part in parts {
-                            let partWords = part.components(separatedBy: CharacterSet.alphanumerics.inverted)
-                                .filter { $0.count >= 2 }
-                            if partWords.isEmpty { continue }
-                            
-                            let partWhere = partWords.map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
-                            let partSql = """
-                                SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'\
-                                FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)\
-                                WHERE \(partWhere) AND rom.systemID = (SELECT systemID FROM SYSTEMS WHERE systemoeid = '\(systemIdentifier)')\
-                                AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''\
-                                LIMIT 1
-                            """
-                            NSLog("[OpenEmu] Compilation Splitter searching for: \(part)")
-                            results = (try? database.executeQuery(partSql)) ?? []
-                            if !results.isEmpty { break }
+                        """
+                        let fuzzyResults = (try? database.executeQuery(fuzzySql)) ?? []
+                        if !fuzzyResults.isEmpty {
+                            results = fuzzyResults
                         }
                     }
-                    
-                    // Pass 3: Last Resort (First two words)
-                    if results.isEmpty && words.count > 1 {
-                        let simpleWhere = [words[0], words[1]].map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
-                        let simpleSql = """
-                            SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'\
-                            FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)\
-                            WHERE \(simpleWhere) AND rom.systemID = (SELECT systemID FROM SYSTEMS WHERE systemoeid = '\(systemIdentifier)')\
-                            AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''\
-                            LIMIT 5
+                }
+
+                // Pass 2 – compilation splitter (only + and & to avoid splitting subtitles on -)
+                // FIX: removed '-' as a separator; it incorrectly splits "Game Name - Subtitle"
+                // style titles that are not multi-game compilations.
+                if results.isEmpty || missingBoxArt {
+                    let compilationSeparators = CharacterSet(charactersIn: "+&")
+                    let parts = cleanedName
+                        .components(separatedBy: compilationSeparators)
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                    if parts.count > 1 {
+                        for part in parts {
+                            let partWords = part
+                                .components(separatedBy: .whitespaces)
+                                .filter { $0.count > 1 }
+                            guard !partWords.isEmpty else { continue }
+                            let cond = partWords.map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
+                            let splitSql = """
+                            SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'
+                            FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)
+                            WHERE \(cond)
+                              AND romSystemID IN (SELECT systemID FROM SYSTEMS WHERE systemOEID = '\(systemIdentifier)')
+                              AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''
+                            LIMIT 1
+                            """
+                            let splitResults = (try? database.executeQuery(splitSql)) ?? []
+                            if !splitResults.isEmpty {
+                                results = splitResults
+                                break
+                            }
+                        }
+                    }
+                }
+
+                // Pass 3 – last resort: first two significant words only
+                if results.isEmpty || missingBoxArt {
+                    let firstTwo = cleanedName
+                        .components(separatedBy: .whitespaces)
+                        .filter { $0.count > 1 }
+                        .prefix(2)
+                    if firstTwo.count >= 2 {
+                        let cond = firstTwo.map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
+                        let lastSql = """
+                        SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'
+                        FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)
+                        WHERE \(cond)
+                          AND romSystemID IN (SELECT systemID FROM SYSTEMS WHERE systemOEID = '\(systemIdentifier)')
+                          AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''
+                        LIMIT 5
                         """
-                        results = (try? database.executeQuery(simpleSql)) ?? []
-                    }
-
-                    if !results.isEmpty {
-                        NSLog("[OpenEmu] Compilation match FOUND: \(results.first?["gameTitle"] ?? "unknown")")
-                    } else {
-                        NSLog("[OpenEmu] Meta lookup FAILED for: \(cleanedName)")
+                        let lastResults = (try? database.executeQuery(lastSql)) ?? []
+                        if !lastResults.isEmpty { results = lastResults }
                     }
                 }
-            }
-            
-            var result: [String : Any]?
-            
-            if results.count > 1 {
-                // the database holds multiple regions for this rom (probably WORLD rom)
-                // so we pick the preferred region if it's available or just any if not
-                var preferredRegion = OELocalizationHelper.shared.regionName
-                if preferredRegion == "North America" { preferredRegion = "USA" }
-                
-                // Primary Filter: USA/English
-                if let dict = results.first(where: { $0["region"] as? String == preferredRegion }) {
-                    result = dict
-                } else if let dict = results.first(where: { $0["region"] as? String == "USA" }) {
-                    result = dict
-                } else if let dict = results.first(where: { $0["region"] as? String == "Europe" }) {
-                    result = dict
-                }
-                
-                // Fallback: Pick anything
-                if result == nil { result = results.last }
-            } else {
-                result = results.last
-            }
-            
-            if var result = result {
-                // remove the region key so the result can be directly passed to OEDBGame
-                result.removeValue(forKey: "region")
-                resultDict.merge(result) { (_, new) in new }
-            }
 
-            // Final check: If still no art and NO credentials, ScreenScraper might still works as a last resort
-            if !hasSScredentials && (resultDict["boxImageURL"] == nil || (resultDict["boxImageURL"] as? String)?.isEmpty == true) {
-                let romName = url.map { ($0.lastPathComponent as NSString).deletingPathExtension }
-                if let ss = ScreenScraperClient.shared.fetchGameInfo(md5: md5, romName: romName, systemIdentifier: systemIdentifier) {
-                    if let boxURL = ss.boxImageURL { resultDict["boxImageURL"] = boxURL.absoluteString }
-                    if resultDict["gameTitle"] == nil, let title = ss.gameTitle { resultDict["gameTitle"] = title }
-                    if resultDict["gameDescription"] == nil, let desc = ss.gameDescription { resultDict["gameDescription"] = desc }
+                // Merge best fuzzy result (if any) into resultDict
+                if let best = pickPreferredRegion(from: results) {
+                    var picked = best
+                    picked.removeValue(forKey: "region")
+                    resultDict.merge(picked) { (existing, _) in existing }
                 }
             }
 
             return resultDict
         }
     }
-    
+
+    // MARK: - Helpers
+
+    /// Picks the best region match from a result set.
+    /// Priority: user's preferred region → USA → Europe → first available.
+    private func pickPreferredRegion(from results: [[String: Any]]) -> [String: Any]? {
+        guard !results.isEmpty else { return nil }
+        guard results.count > 1 else { return results.last }
+
+        var preferredRegion = OELocalizationHelper.shared.regionName
+        if preferredRegion == "North America" { preferredRegion = "USA" }
+
+        if let match = results.first(where: { $0["region"] as? String == preferredRegion }) {
+            return match
+        }
+        if let usa = results.first(where: { $0["region"] as? String == "USA" }) {
+            return usa
+        }
+        if let eur = results.first(where: { $0["region"] as? String == "Europe" }) {
+            return eur
+        }
+        return results.last
+    }
+
+    /// Strips region tags, revision markers, and extra punctuation from a ROM filename
+    /// so fuzzy SQL queries are not polluted by brackets/parens content.
+    private func cleanROMName(_ name: String) -> String {
+        var cleaned = name
+        // Remove parenthesised and bracketed annotations: (USA), [!], (Rev A), etc.
+        cleaned = cleaned.replacingOccurrences(of: "\\([^)]*\\)", with: "", options: .regularExpression)
+        cleaned = cleaned.replacingOccurrences(of: "\\[[^\\]]*\\]", with: "", options: .regularExpression)
+        // Collapse leftover punctuation to spaces
+        cleaned = cleaned.replacingOccurrences(of: "[^a-zA-Z0-9 ]", with: " ", options: .regularExpression)
+        // Collapse multiple spaces
+        cleaned = cleaned.components(separatedBy: .whitespaces).filter { !$0.isEmpty }.joined(separator: " ")
+        return cleaned
+    }
+
+    // MARK: - System property queries
+
     func hashlessROMCheck(forSystem system: String) -> Bool {
         guard let database = database else { return false }
-        
         let sql = "select systemhashless as 'hashless' from systems where systemoeid = '\(system)'"
         let result = try? database.executeQuery(sql)
         return result?.last?["hashless"] as? Int32 == 1
     }
-    
+
     func headerROMCheck(forSystem system: String) -> Bool {
         guard let database = database else { return false }
-        
         let sql = "select systemheader as 'header' from systems where systemoeid = '\(system)'"
         let result = try? database.executeQuery(sql)
         return result?.last?["header"] as? Int32 == 1
     }
-    
+
     func serialROMCheck(forSystem system: String) -> Bool {
         guard let database = database else { return false }
-        
         let sql = "select systemserial as 'serial' from systems where systemoeid = '\(system)'"
         let result = try? database.executeQuery(sql)
-        // NOTE: As of OpenVGDB 28, the “systemSerial” column is of type “TEXT”.
+        // NOTE: As of OpenVGDB 28, the "systemSerial" column is of type "TEXT".
         return (result?.last?["serial"] as? String) == "1" || (result?.last?["serial"] as? Int32) == 1
     }
-    
+
     func sizeOfROMHeader(forSystem system: String) -> Int32 {
         guard let database = database else { return 0 }
-        
         let sql = "select systemheadersizebytes as 'size' from systems where systemoeid = '\(system)'"
         let result = try? database.executeQuery(sql)
         return result?.last?["size"] as? Int32 ?? 0
