@@ -5,7 +5,42 @@
     <link>https://github.com/nickybmon/OpenEmu-Silicon/releases</link>
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
-    <item>
+        <item>
+      <title>OpenEmu-Silicon 1.0.4</title>
+      <description>
+        <![CDATA[
+        <h2>OpenEmu-Silicon 1.0.4</h2>
+        <h3>What's New in 1.0.4</h3>
+        <ul>
+        <li><strong>Image Adjustments</strong> — Saturation and Gamma sliders now stay open while dragging; no longer dismissed by the drag gesture</li>
+        <li><strong>Preferences window</strong> now opens at the correct full width on first launch, instead of starting narrow until the Controls tab is visited</li>
+        <li><strong>Homebrew tap</strong> — OpenEmu-Silicon is now installable via `brew install --cask openemu-silicon`</li>
+        <li><strong>Crash reporting</strong> — opt-in Sentry crash reporting now includes additional context, breadcrumbs, and release tracking to help diagnose issues faster</li>
+        </ul>
+        <h3>Bug Fixes</h3>
+        <ul>
+        <li>Fixed a crash on macOS 26 caused by mixing `NSLog` format strings with Swift string interpolation</li>
+        <li>Fixed sidebar not refreshing after a ROM import completes</li>
+        <li>Fixed sidebar not updating when a homebrew game was added via Core Data</li>
+        <li>Fixed systems the user explicitly disabled being re-enabled on next launch</li>
+        <li>Fixed a potential crash on quit caused by Core Data writes happening off the correct queue</li>
+        <li>Fixed a memory leak from a dangling `NotificationCenter` observer in the game controls bar</li>
+        <li>Fixed Saturation and Gamma slider positions in the Gameplay preferences pane</li>
+        <li>Fixed the Image Adjustments menu item being grayed out in certain conditions</li>
+        </ul>
+        ]]>
+      </description>
+      <pubDate>Sun, 05 Apr 2026 20:13:44 +0000</pubDate>
+      <sparkle:minimumSystemVersion>11.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/nickybmon/OpenEmu-Silicon/releases/download/v1.0.4/OpenEmu-Silicon.dmg"
+        sparkle:version="5"
+        sparkle:shortVersionString="1.0.4"
+        sparkle:edSignature="IIJGRcUDX1Jmqu8FeWwhQNiwFVY7bFLzJ/cxQSMihJf02EvkvF8Hn1K5OcbNfbVe+wrr+tf8bEbSnHK0F3jlAw=="
+        length="43514380"
+        type="application/octet-stream"/>
+    </item>
+<item>
       <title>OpenEmu-Silicon 1.0.3</title>
       <description>
         <![CDATA[
