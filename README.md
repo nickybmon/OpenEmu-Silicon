@@ -49,7 +49,7 @@ Get the latest build from the **[Releases](https://github.com/nickybmon/OpenEmu-
 ### Install via Homebrew
 
 ```bash
-brew tap nickybmon/OpenEmu-Silicon
+brew tap nickybmon/OpenEmu-Silicon https://github.com/nickybmon/OpenEmu-Silicon
 brew install --cask openemu-silicon
 ```
 
