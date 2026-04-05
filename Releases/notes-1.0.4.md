@@ -15,3 +15,5 @@
 - Fixed a memory leak from a dangling `NotificationCenter` observer in the game controls bar
 - Fixed Saturation and Gamma slider positions in the Gameplay preferences pane
 - Fixed the Image Adjustments menu item being grayed out in certain conditions
+- Fixed Gameplay preferences pane being clipped at the bottom on first visit
+- Fixed Help menu links (Submit Feedback, User Guide, Release Notes, Web Site) pointing to the original OpenEmu repo instead of OpenEmu-Silicon
