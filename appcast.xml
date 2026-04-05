@@ -5,7 +5,7 @@
     <link>https://github.com/nickybmon/OpenEmu-Silicon/releases</link>
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
-        <item>
+            <item>
       <title>OpenEmu-Silicon 1.0.4</title>
       <description>
         <![CDATA[
@@ -27,17 +27,19 @@
         <li>Fixed a memory leak from a dangling `NotificationCenter` observer in the game controls bar</li>
         <li>Fixed Saturation and Gamma slider positions in the Gameplay preferences pane</li>
         <li>Fixed the Image Adjustments menu item being grayed out in certain conditions</li>
+        <li>Fixed Gameplay preferences pane being clipped at the bottom on first visit</li>
+        <li>Fixed Help menu links (Submit Feedback, User Guide, Release Notes, Web Site) pointing to the original OpenEmu repo instead of OpenEmu-Silicon</li>
         </ul>
         ]]>
       </description>
-      <pubDate>Sun, 05 Apr 2026 20:13:44 +0000</pubDate>
+      <pubDate>Sun, 05 Apr 2026 20:38:08 +0000</pubDate>
       <sparkle:minimumSystemVersion>11.0</sparkle:minimumSystemVersion>
       <enclosure
         url="https://github.com/nickybmon/OpenEmu-Silicon/releases/download/v1.0.4/OpenEmu-Silicon.dmg"
-        sparkle:version="5"
+        sparkle:version="6"
         sparkle:shortVersionString="1.0.4"
-        sparkle:edSignature="IIJGRcUDX1Jmqu8FeWwhQNiwFVY7bFLzJ/cxQSMihJf02EvkvF8Hn1K5OcbNfbVe+wrr+tf8bEbSnHK0F3jlAw=="
-        length="43514380"
+        sparkle:edSignature="amQMbfJNMHTCKn3o0OgIaxsku69zVZOqdCUJ1BGq5cN/XPUl12mzIvNFYDCnV4dPtMUreUAnERgk28yDDAwPBQ=="
+        length="43514210"
         type="application/octet-stream"/>
     </item>
 <item>
