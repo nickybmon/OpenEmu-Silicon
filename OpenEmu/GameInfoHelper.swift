@@ -2,14 +2,14 @@
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-// * Redistributions in binary form must reproduce the above copyright
-// notice, this list of conditions and the following disclaimer in the
-// documentation and/or other materials provided with the distribution.
-// * Neither the name of the OpenEmu Team nor the
-// names of its contributors may be used to endorse or promote products
-// derived from this software without specific prior written permission.
+//     * Redistributions of source code must retain the above copyright
+//       notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//     * Neither the name of the OpenEmu Team nor the
+//       names of its contributors may be used to endorse or promote products
+//       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY OpenEmu Team ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -45,10 +45,13 @@ final class GameInfoHelper {
             let md5 = gameInfo["md5"] as? String
             let url = gameInfo["URL"] as? URL
 
-            // Determine ScreenScraper credentials once, used throughout this function.
-            let ssUsername = UserDefaults.standard.string(forKey: "ScreenScraperUsername") ?? ""
-            let ssPassword = ScreenScraperCredentials.storedPassword() ?? ""
-            let hasSScredentials = !ssUsername.isEmpty && !ssPassword.isEmpty
+            // ScreenScraper credentials — resolved lazily so we don't hit the Keychain
+            // on every ROM lookup (e.g. during a full library scan).
+            lazy var hasSScredentials: Bool = {
+                let user = UserDefaults.standard.string(forKey: "ScreenScraperUsername") ?? ""
+                guard !user.isEmpty else { return false }
+                return !(ScreenScraperCredentials.storedPassword() ?? "").isEmpty
+            }()
 
             guard let database = database else {
                 // OpenVGDB unavailable.
@@ -220,32 +223,35 @@ final class GameInfoHelper {
                 let rawName     = (url.lastPathComponent as NSString).deletingPathExtension
                 let cleanedName = cleanROMName(rawName)
 
-                // Pass 1 – full word AND match
-                if results.isEmpty || missingBoxArt {
-                    let words = cleanedName
-                        .components(separatedBy: .whitespaces)
-                        .filter { $0.count > 1 }
-                    if !words.isEmpty {
-                        let conditions = words.map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
-                        let fuzzySql = """
-                        SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'
-                        FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)
-                        WHERE \(conditions)
-                          AND romSystemID IN (SELECT systemID FROM SYSTEMS WHERE systemOEID = '\(systemIdentifier)')
-                          AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''
-                        LIMIT 5
-                        """
-                        let fuzzyResults = (try? database.executeQuery(fuzzySql)) ?? []
-                        if !fuzzyResults.isEmpty {
-                            results = fuzzyResults
-                        }
+                // Three cascading passes — each only runs if the previous found nothing.
+                // All fuzzy queries filter for releaseCoverFront IS NOT NULL so any
+                // non-empty result means we found art; fuzzyFound tracks this.
+                var fuzzyFound = false
+
+                // Pass 1 – full title word AND match
+                let words = cleanedName
+                    .components(separatedBy: .whitespaces)
+                    .filter { $0.count > 1 }
+                if !words.isEmpty {
+                    let conditions = words.map { "releaseTitleName LIKE '%\($0)%'" }.joined(separator: " AND ")
+                    let fuzzySql = """
+                    SELECT DISTINCT releaseTitleName as 'gameTitle', releaseCoverFront as 'boxImageURL', releaseDescription as 'gameDescription', regionName as 'region'
+                    FROM ROMs rom LEFT JOIN RELEASES release USING (romID) LEFT JOIN REGIONS region on (regionLocalizedID=region.regionID)
+                    WHERE \(conditions)
+                      AND romSystemID IN (SELECT systemID FROM SYSTEMS WHERE systemOEID = '\(systemIdentifier)')
+                      AND releaseCoverFront IS NOT NULL AND releaseCoverFront != ''
+                    LIMIT 5
+                    """
+                    let fuzzyResults = (try? database.executeQuery(fuzzySql)) ?? []
+                    if !fuzzyResults.isEmpty {
+                        results = fuzzyResults
+                        fuzzyFound = true
                     }
                 }
 
-                // Pass 2 – compilation splitter (only + and & to avoid splitting subtitles on -)
-                // FIX: removed '-' as a separator; it incorrectly splits "Game Name - Subtitle"
-                // style titles that are not multi-game compilations.
-                if results.isEmpty || missingBoxArt {
+                // Pass 2 – compilation splitter (+ and & only; - excluded to avoid
+                // splitting "Game Name - Subtitle" style titles incorrectly)
+                if !fuzzyFound {
                     let compilationSeparators = CharacterSet(charactersIn: "+&")
                     let parts = cleanedName
                         .components(separatedBy: compilationSeparators)
@@ -269,6 +275,7 @@ final class GameInfoHelper {
                             let splitResults = (try? database.executeQuery(splitSql)) ?? []
                             if !splitResults.isEmpty {
                                 results = splitResults
+                                fuzzyFound = true
                                 break
                             }
                         }
@@ -276,7 +283,7 @@ final class GameInfoHelper {
                 }
 
                 // Pass 3 – last resort: first two significant words only
-                if results.isEmpty || missingBoxArt {
+                if !fuzzyFound {
                     let firstTwo = cleanedName
                         .components(separatedBy: .whitespaces)
                         .filter { $0.count > 1 }
