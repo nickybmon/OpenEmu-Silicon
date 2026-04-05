@@ -164,6 +164,7 @@ I'm transparent about this because honesty with the community matters more than 
 | [`docs/migrating-from-openemu.md`](docs/migrating-from-openemu.md) | Switching from the original OpenEmu: what carries over, what doesn't, and how to back up |
 | [`docs/cores.md`](docs/cores.md) | Every emulation core: working status, upstream version, system compatibility, known issues |
 | [`docs/roadmap.md`](docs/roadmap.md) | Planned integrations (Nintendo DS, MAME, GameCube) with implementation details |
+| [`CREDITS.md`](CREDITS.md) | Everyone who contributed — original OpenEmu team, ARM64 port, core sources, illustrators, and this repo's contributors |
 
 ---
 
