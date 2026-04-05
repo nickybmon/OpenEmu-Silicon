@@ -413,8 +413,7 @@ extension OSLog {
     }
     
     public func setGlobalShaderParameters(gamma: CGFloat, saturation: CGFloat) {
-        _filterChain.globalGamma = Float(gamma)
-        _filterChain.globalSaturation = Float(saturation)
+        _filterChain.setShaderParameters(gamma: Float(gamma), saturation: Float(saturation))
     }
     
     public func setupEmulation(completionHandler handler: @escaping (_ screenSize: OEIntSize, _ aspectSize: OEIntSize) -> Void) {

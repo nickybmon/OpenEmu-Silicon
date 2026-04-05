@@ -55,13 +55,28 @@ public final class FilterChain {
     
     public var hasShader: Bool = false
     
-    // These are updated from the UI/XPC thread and read from the render thread.
-    // Safe for single-word Floats on Apple Silicon (atomic reads/writes),
-    // but worth noting if porting to non-TSO architectures.
-    public var globalGamma: Float = 1.0
-    public var globalSaturation: Float = 1.0
-    
-    
+    // Shader parameters written from the XPC/UI thread, read from the render thread.
+    // Access is serialized through _shaderParamLock; the render path snapshots both
+    // values once per frame into _frameGamma/_frameSaturation so the lock is only
+    // acquired once per frame regardless of how many passes read the values.
+    private let _shaderParamLock = NSLock()
+    private var _pendingGamma: Float = 1.0
+    private var _pendingSaturation: Float = 1.0
+
+    /// Thread-safe setter — called from the XPC/UI thread via setGlobalShaderParameters.
+    public func setShaderParameters(gamma: Float, saturation: Float) {
+        _shaderParamLock.lock()
+        _pendingGamma = gamma
+        _pendingSaturation = saturation
+        _shaderParamLock.unlock()
+    }
+
+    // Per-frame snapshots captured at the start of prepareNextFrame.
+    // All render-path reads use these; never read _pending* on the render thread.
+    private var _frameGamma: Float = 1.0
+    private var _frameSaturation: Float = 1.0
+    private var _frameNeedsAdjustments: Bool = false
+
     private var frameCount: UInt = 0
     private var passCount: Int = 0
     private var lastPassIndex: Int = 0
@@ -481,9 +496,14 @@ public final class FilterChain {
         updateHistory()
         clearTexturesWithCommandBuffer(commandBuffer)
         
-        let needsAdjustments = globalGamma != 1.0 || globalSaturation != 1.0
-        
-        if historyCount == 0 && !needsAdjustments {
+        // Snapshot shader params once for this entire frame (single lock acquisition).
+        _shaderParamLock.lock()
+        _frameGamma = _pendingGamma
+        _frameSaturation = _pendingSaturation
+        _shaderParamLock.unlock()
+        _frameNeedsAdjustments = _frameGamma != 1.0 || _frameSaturation != 1.0
+
+        if historyCount == 0 && !_frameNeedsAdjustments {
             // No need to copy or adjust, set the sourceTexture to Original / OriginalHistory0 semantic
             initTexture(&historyTextures[0], withTexture: sourceTexture)
         } else {
@@ -493,7 +513,7 @@ public final class FilterChain {
             let size = MTLSize(width: Int(sourceRect.width), height: Int(sourceRect.height), depth: 1)
             let zero = MTLOrigin()
             
-            if needsAdjustments {
+            if _frameNeedsAdjustments {
                 // Apply Gamma/Saturation during the initial copy into historyTextures[0]
                 // This ensures all subsequent shader passes see the adjusted colors.
                 let rpd = MTLRenderPassDescriptor()
@@ -519,8 +539,8 @@ public final class FilterChain {
                     
                     var prepUniforms = Uniforms.empty
                     prepUniforms.projectionMatrix = .makeOrtho(left: 0, right: 1, top: 0, bottom: 1)
-                    prepUniforms.gamma = globalGamma
-                    prepUniforms.saturation = globalSaturation
+                    prepUniforms.gamma = _frameGamma
+                    prepUniforms.saturation = _frameSaturation
                     prepUniforms.outputSize = .init(Float(texture.width), Float(texture.height))
                     
                     rce.setVertexBytes(&prepUniforms, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
@@ -569,12 +589,14 @@ public final class FilterChain {
     }
     
     private func renderTexture(_ texture: MTLTexture, renderCommandEncoder rce: MTLRenderCommandEncoder) {
-        // Set gamma/saturation to 1.0 because they are already applied during the initial copy 
-        // in prepareNextFrame (pre-pass). Applying them here again would cause double-rendering.
-        uniforms.gamma = 1.0
-        uniforms.saturation = 1.0
-        rce.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
-        rce.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
+        // Build a local copy with gamma/saturation forced to 1.0 — adjustments were already
+        // applied during the pre-pass in prepareNextFrame. Using a copy avoids permanently
+        // mutating self.uniforms so the real values remain available if needed elsewhere.
+        var u = uniforms
+        u.gamma = 1.0
+        u.saturation = 1.0
+        rce.setVertexBytes(&u, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
+        rce.setFragmentBytes(&u, length: MemoryLayout<Uniforms>.stride, index: BufferIndex.uniforms.rawValue)
         rce.setRenderPipelineState(pipelineState)
         rce.setFragmentSamplerState(samplers[.nearest][.edge], index: SamplerIndex.draw.rawValue)
         rce.setViewport(outputFrame.viewport)
@@ -727,8 +749,7 @@ public final class FilterChain {
             
             
             let fmt = self.pass[i].format
-            let needsAdjustments = globalGamma != 1.0 || globalSaturation != 1.0
-            if !needsAdjustments && i == lastPassIndex && passSize == viewportSize && fmt == .bgra8Unorm {
+            if !_frameNeedsAdjustments && i == lastPassIndex && passSize == viewportSize && fmt == .bgra8Unorm {
                 // last pass can render directly to the output render target
                 self.pass[i].renderTarget.size = .init(width: passSize.width, height: passSize.height)
             } else {

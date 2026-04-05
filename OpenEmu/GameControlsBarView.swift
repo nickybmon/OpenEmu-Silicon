@@ -308,7 +308,7 @@ final class GameControlsBarView: NSView {
         let v = OEGameDocument.clampedSaturation(sender.floatValue)
         satAdjustLabel?.stringValue = String(format: "%.0f%%", v * 100)
         NSDocumentController.shared.documents.forEach {
-            ($0 as? OEGameDocument)?.setSaturation(v, asDefault: true)
+            ($0 as? OEGameDocument)?.setSaturation(v, asDefault: false)
         }
     }
 
@@ -316,7 +316,7 @@ final class GameControlsBarView: NSView {
         let v = OEGameDocument.clampedGamma(sender.floatValue)
         gamAdjustLabel?.stringValue = String(format: "%.0f%%", v * 100)
         NSDocumentController.shared.documents.forEach {
-            ($0 as? OEGameDocument)?.setGamma(v, asDefault: true)
+            ($0 as? OEGameDocument)?.setGamma(v, asDefault: false)
         }
     }
 }
