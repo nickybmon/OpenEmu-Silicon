@@ -51,6 +51,36 @@ enum SentryService {
         }
     }
 
+    // MARK: - Game Context
+
+    /// Attaches game/system/core info to every subsequent crash report.
+    /// Call after a game document is fully set up (system plugin + core plugin resolved).
+    static func setGameContext(gameName: String, systemIdentifier: String, coreIdentifier: String) {
+        SentrySDK.configureScope { scope in
+            scope.setContext(value: [
+                "game": gameName,
+                "system": systemIdentifier,
+                "core": coreIdentifier,
+            ], key: "emulation")
+        }
+    }
+
+    /// Clears game context when emulation ends so stale info doesn't attach to future crashes.
+    static func clearGameContext() {
+        SentrySDK.configureScope { scope in
+            scope.removeContext(key: "emulation")
+        }
+    }
+
+    /// Records a breadcrumb — a timestamped event visible in the crash report trail.
+    static func addBreadcrumb(message: String, category: String, level: SentryLevel = .info) {
+        let crumb = Breadcrumb()
+        crumb.message = message
+        crumb.category = category
+        crumb.level = level
+        SentrySDK.addBreadcrumb(crumb)
+    }
+
     // MARK: - Private
 
     private static func showConsentPrompt() {
@@ -73,9 +103,13 @@ enum SentryService {
     }
 
     private static func start() {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let build   = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
         SentrySDK.start { options in
-            options.dsn   = dsn
-            options.debug = false
+            options.dsn         = dsn
+            options.debug       = false
+            options.releaseName = "openemu-silicon@\(version)+\(build)"
+            options.environment = "production"
             options.tracesSampleRate = 0   // crash reports only — no performance tracing
         }
     }

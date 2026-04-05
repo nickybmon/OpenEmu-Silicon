@@ -394,7 +394,13 @@ final class OEGameDocument: NSDocument {
         }
         
         loadCheats()
-        
+
+        SentryService.setGameContext(
+            gameName: rom.game?.displayName ?? "Unknown",
+            systemIdentifier: systemPlugin.systemIdentifier,
+            coreIdentifier: corePlugin?.bundleIdentifier ?? "Unknown"
+        )
+
         gameCoreManager = newGameCoreManager(with: corePlugin)
         gameViewController = GameViewController(document: self)
     }
@@ -560,8 +566,10 @@ final class OEGameDocument: NSDocument {
             //removeDeviceNotificationObservers()
             
             self.gameCoreManager?.stopEmulation() {
+                SentryService.addBreadcrumb(message: "Emulation stopped", category: "emulation")
+                SentryService.clearGameContext()
                 OEBindingsController.default.systemBindings(for: self.systemPlugin.controller).remove(self)
-                
+
                 self.emulationStatus = .notSetup
                 
                 self.gameCoreManager = nil
@@ -1001,7 +1009,8 @@ final class OEGameDocument: NSDocument {
         if emulationStatus != .setup {
             return
         }
-        
+
+        SentryService.addBreadcrumb(message: "Emulation started", category: "emulation")
         emulationStatus = .starting
         gameCoreManager?.startEmulation() {
             self.emulationStatus = .playing
@@ -1022,6 +1031,7 @@ final class OEGameDocument: NSDocument {
                 return
             }
             if pauseEmulation {
+                SentryService.addBreadcrumb(message: "Emulation paused", category: "emulation")
                 enableOSSleep()
                 emulationStatus = .paused
                 if let lastPlayStartDate = lastPlayStartDate {
@@ -1029,6 +1039,7 @@ final class OEGameDocument: NSDocument {
                     self.lastPlayStartDate = nil
                 }
             } else {
+                SentryService.addBreadcrumb(message: "Emulation resumed", category: "emulation")
                 disableOSSleep()
                 rom.markAsPlayedNow()
                 lastPlayStartDate = Date()

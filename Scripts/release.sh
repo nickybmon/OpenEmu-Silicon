@@ -68,6 +68,16 @@ echo "OK: notarytool credentials"
 gh auth status &>/dev/null || die "gh CLI not authenticated. Run: gh auth login"
 echo "OK: gh CLI authenticated"
 
+# Check sentry-cli auth (non-fatal — warns but doesn't abort)
+if command -v sentry-cli &>/dev/null; then
+  if ! sentry-cli info &>/dev/null; then
+    echo "WARNING: sentry-cli is not authenticated. dSYM upload will fail."
+    echo "         Run: sentry-cli login  (or set SENTRY_AUTH_TOKEN env var)"
+  else
+    echo "OK: sentry-cli authenticated"
+  fi
+fi
+
 # Check cert
 security find-identity -v | grep -q "Developer ID Application" \
   || die "Developer ID Application certificate not found in keychain."
