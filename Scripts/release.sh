@@ -68,13 +68,23 @@ echo "OK: notarytool credentials"
 gh auth status &>/dev/null || die "gh CLI not authenticated. Run: gh auth login"
 echo "OK: gh CLI authenticated"
 
+# Check sentry-cli auth (non-fatal — warns but doesn't abort)
+if command -v sentry-cli &>/dev/null; then
+  if ! sentry-cli info &>/dev/null; then
+    echo "WARNING: sentry-cli is not authenticated. dSYM upload will fail."
+    echo "         Run: sentry-cli login  (or set SENTRY_AUTH_TOKEN env var)"
+  else
+    echo "OK: sentry-cli authenticated"
+  fi
+fi
+
 # Check cert
 security find-identity -v | grep -q "Developer ID Application" \
   || die "Developer ID Application certificate not found in keychain."
 echo "OK: Developer ID certificate"
 
 # Warn if working tree is dirty (non-appcast files)
-DIRTY=$(git -C "$REPO_ROOT" status --porcelain | grep -v "appcast.xml" | grep -v "Releases/" || true)
+DIRTY=$(git -C "$REPO_ROOT" status --porcelain | grep -v "appcast.xml" | grep -v "Releases/" | grep -v "Dolphin/" || true)
 if [ -n "$DIRTY" ]; then
   echo ""
   echo "WARNING: Working tree has uncommitted changes:"
@@ -98,11 +108,27 @@ xcodebuild archive \
   -archivePath "$ARCHIVE_PATH" \
   CODE_SIGN_IDENTITY="$IDENTITY" \
   CODE_SIGN_STYLE=Manual \
+  DEVELOPMENT_TEAM=AJC82Q6789 \
   ENABLE_HARDENED_RUNTIME=YES \
   2>&1 | grep -E "^(Archive|error:|warning:|BUILD)" | tail -20
 
 [ -d "$ARCHIVE_PATH" ] || die "Archive not found at expected path: $ARCHIVE_PATH"
 echo "Archive: $ARCHIVE_PATH"
+
+# ── 1.5. Upload dSYMs to Sentry ───────────────────────────────────────────────
+step "Uploading dSYMs to Sentry (symbolicated crash reports)"
+
+if command -v sentry-cli &>/dev/null; then
+  sentry-cli upload-dif \
+    --org openemu-silicon \
+    --project openemu-silicon \
+    "$ARCHIVE_PATH/dSYMs/" \
+    || echo "WARNING: dSYM upload to Sentry failed — crash stack traces may be unreadable. Check sentry-cli auth."
+else
+  echo "WARNING: sentry-cli not installed. Crash stack traces in Sentry will not be symbolicated."
+  echo "         Install with: brew install getsentry/tools/sentry-cli"
+  echo "         Then authenticate: sentry-cli login"
+fi
 
 # ── 2. Notarize (re-sign + notarize + DMG + staple) ──────────────────────────
 step "2/5  Re-signing, notarizing, and creating DMG"
@@ -217,25 +243,38 @@ step "5/5  Creating GitHub draft release and pushing appcast"
 
 TAG="v$VERSION"
 
-# Ensure tag exists (create it if not)
+# Ensure tag exists and is pushed — must happen before gh release create
+# so GitHub associates the release with the tag URL instead of "untagged-..."
 if ! git -C "$REPO_ROOT" tag -l | grep -qx "$TAG"; then
   echo "Creating git tag $TAG..."
   git -C "$REPO_ROOT" tag "$TAG"
 fi
+echo "Pushing tag $TAG..."
+git -C "$REPO_ROOT" push origin "$TAG"
+
+# Build release notes body for GitHub (use notes file if provided, else placeholder)
+if [ -n "$NOTES_FILE" ] && [ -f "$NOTES_FILE" ]; then
+  GH_NOTES_ARGS=(--notes-file "$NOTES_FILE")
+else
+  GH_NOTES_ARGS=(--notes "Release notes — edit before publishing.")
+fi
 
 # Create or update GitHub draft release
 if gh release view "$TAG" --repo nickybmon/OpenEmu-Silicon &>/dev/null; then
-  echo "Release $TAG already exists — uploading DMG..."
+  echo "Release $TAG already exists — uploading DMG and updating notes..."
   gh release upload "$TAG" "$DMG" \
     --repo nickybmon/OpenEmu-Silicon \
     --clobber
+  gh release edit "$TAG" \
+    --repo nickybmon/OpenEmu-Silicon \
+    "${GH_NOTES_ARGS[@]}"
 else
   echo "Creating draft release $TAG..."
   gh release create "$TAG" "$DMG" \
     --repo nickybmon/OpenEmu-Silicon \
     --title "OpenEmu-Silicon $VERSION" \
     --draft \
-    --notes "Release notes — edit before publishing."
+    "${GH_NOTES_ARGS[@]}"
 fi
 
 echo "DMG uploaded to draft release $TAG."

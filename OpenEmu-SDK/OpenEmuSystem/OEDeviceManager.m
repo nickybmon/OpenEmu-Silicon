@@ -173,7 +173,12 @@ static const void * kOEBluetoothDevicePairSyncStyleKey = &kOEBluetoothDevicePair
 - (void)rescanKeyboardDevices
 {
     if (@available(macOS 10.15, *)) {
-        if (self.accessType != OEDeviceAccessTypeGranted) return;
+        // Only skip if the user has explicitly denied access. "Unknown" means TCC
+        // couldn't confirm the grant (common on ad-hoc/dev-signed builds and on
+        // some macOS beta releases), but the permission is typically still in effect.
+        // Letting IOKit attempt the match is safe: if permission truly isn't present,
+        // no keyboard devices will appear in the matching callback.
+        if (self.accessType == OEDeviceAccessTypeDenied) return;
         if (_keyboardHandlers.count > 0) return;  // already enumerated
 
         // Rebuild the matching array with keyboards included and re-apply it.

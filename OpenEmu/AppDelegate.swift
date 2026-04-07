@@ -39,10 +39,10 @@ extension OEDBRom: CachedLastPlayedInfoItem {}
 @objcMembers
 class AppDelegate: NSObject {
     
-    static let websiteAddress = "http://openemu.org/"
-    static let userGuideAddress = "https://github.com/OpenEmu/OpenEmu/wiki/User-guide"
-    static let releaseNotesAddress = "https://github.com/OpenEmu/OpenEmu/wiki/Release-notes"
-    static let feedbackAddress = "https://github.com/OpenEmu/OpenEmu/issues"
+    static let websiteAddress = "https://github.com/nickybmon/OpenEmu-Silicon"
+    static let userGuideAddress = "https://github.com/nickybmon/OpenEmu-Silicon/wiki"
+    static let releaseNotesAddress = "https://github.com/nickybmon/OpenEmu-Silicon/releases"
+    static let feedbackAddress = "https://github.com/nickybmon/OpenEmu-Silicon/issues/new/choose"
     static let bugReportAddress = "https://github.com/nickybmon/OpenEmu-Silicon/issues/new"
 
     @IBOutlet weak var fileMenu: NSMenu!
@@ -377,7 +377,9 @@ class AppDelegate: NSObject {
         for plugin in OESystemPlugin.allPlugins {
             if plugin.controller != nil {
                 let system = OEDBSystem.system(for: plugin, in: context)
-                if !system.isEnabled {
+                // Only auto-enable on first encounter (enabled == nil).
+                // If the user explicitly disabled a system, respect that choice.
+                if system.isEnabledByDefault {
                     system.isEnabled = true
                 }
             }
@@ -917,7 +919,12 @@ extension AppDelegate: NSMenuDelegate {
         if !restoreWindow {
             mainWindowController.showWindow(nil)
         }
-        
+
+        // Deferred from applicationDidFinishLaunching so the main window is visible
+        // before the consent sheet appears. Showing a runModal alert before the window
+        // rendered caused a CA transaction hang on macOS 26 (OPENEM-SILICON-8 et al).
+        SentryService.configureIfNeeded()
+
         CoreUpdater.shared.checkForNewCores()   // TODO: check error from completion handler
         
         let userDefaultsController = NSUserDefaultsController.shared

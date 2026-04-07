@@ -176,15 +176,33 @@ git branch -d fix/your-description
 
 ---
 
+## Session Start Convention
+
+**Every coding session must start on a dedicated branch — never work directly on `main`.**
+
+Run `/start` at the beginning of each session. It will:
+1. Sync `main` from origin
+2. Pull the live issue list and project board so you have full context
+3. Create the correct branch for the work at hand
+
+If you already know the task before running `/start`, name the branch accordingly. If not, `/start` will ask.
+
+The only exception is the narrow "direct commit to `main`" rule documented in the Git Workflow section — CI/config/docs-only, single-concern, actively unblocking.
+
+---
+
 ## Slash Commands
 
 Custom commands live in `.claude/commands/`. Invoke with `/command-name`.
 
 | Command | What it does |
 |---------|--------------|
+| `/start` | Session kickoff: sync main, pull live issue/board state, create working branch |
 | `/ship` | Full git loop: sync main, create branch, commit with correct format, push, open PR, update project board |
 | `/review <PR_NUMBER>` | PR review flow: gh pr checkout, build check, list test behaviors from the PR description, report results |
 | `/new-issue` | Guided issue creation: search for duplicates first, select template, enforce title rules, apply labels |
+| `/triage-issue <N>` | Review a bug report or feature request: check completeness, post a comment asking for missing details/screenshots, apply labels |
+| `/prep-release [X.Y.Z]` | Full release prep: bump version, build check, commit, check release notes, run pre-flight, hand off release script command |
 
 ---
 

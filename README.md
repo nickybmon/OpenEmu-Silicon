@@ -46,6 +46,13 @@ If original OpenEmu meets your needs today, there's no urgency. But if you've ha
 
 Get the latest build from the **[Releases](https://github.com/nickybmon/OpenEmu-Silicon/releases)** page.
 
+### Install via Homebrew
+
+```bash
+brew tap nickybmon/OpenEmu-Silicon https://github.com/nickybmon/OpenEmu-Silicon
+brew install --cask openemu-silicon
+```
+
 ---
 
 ## What's New
@@ -154,8 +161,10 @@ I'm transparent about this because honesty with the community matters more than 
 | Doc | What's in it |
 |-----|-------------|
 | [Wiki](https://github.com/nickybmon/OpenEmu-Silicon/wiki) | User guides: getting started, BIOS files, importing, CD games, controllers, troubleshooting |
+| [`docs/migrating-from-openemu.md`](docs/migrating-from-openemu.md) | Switching from the original OpenEmu: what carries over, what doesn't, and how to back up |
 | [`docs/cores.md`](docs/cores.md) | Every emulation core: working status, upstream version, system compatibility, known issues |
 | [`docs/roadmap.md`](docs/roadmap.md) | Planned integrations (Nintendo DS, MAME, GameCube) with implementation details |
+| [`CREDITS.md`](CREDITS.md) | Everyone who contributed — original OpenEmu team, ARM64 port, core sources, illustrators, and this repo's contributors |
 
 ---
 
