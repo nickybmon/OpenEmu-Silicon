@@ -123,6 +123,7 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the full plan with implementation d
 
 ## Known Issues
 
+- **Save state compatibility** — Save states from certain older cores are incompatible with the current ARM64 builds and will crash if loaded. On launch, the app detects these and shows a warning dialog listing the affected cores and count. You can delete them immediately or keep them and back up first. **We strongly recommend backing up your save states before your first launch** — see [Migrating from OpenEmu](https://github.com/nickybmon/OpenEmu-Silicon/wiki/Migrating-from-OpenEmu) for instructions and the full list of affected cores.
 - A few cores have quirks on Apple Silicon still being investigated (see open issues)
 - Input Monitoring permission may need to be granted manually in System Settings → Privacy & Security
 
