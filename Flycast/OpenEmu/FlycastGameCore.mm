@@ -215,25 +215,19 @@ __weak FlycastGameCore *_current;
 - (void)executeFrame
 {
     if (!_isInitialized) {
-        GLint boundFBO = 0;
-        glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
-        flylog("[Flycast] executeFrame init — OE FBO at entry: %d", boundFBO);
         try {
             gui_init();
             theGLContext.init();
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
-            flylog("[Flycast] after theGLContext.init() FBO: %d", boundFBO);
             emu.loadGame(_romPath.fileSystemRepresentation);
             flylog("[Flycast] loadGame done");
-            config::ThreadedRendering.override(false);
+            // Use threaded rendering (default=true): SH4 runs on a background thread;
+            // rend_single_frame() on the OE game loop thread renders one queued frame per call.
+            // Non-threaded mode blocks the game loop indefinitely in getSh4Executor()->Run().
             rend_init_renderer();
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
-            flylog("[Flycast] after rend_init_renderer() FBO: %d", boundFBO);
             settings.display.width  = _videoWidth;
             settings.display.height = _videoHeight;
-            flylog("[Flycast] display size set to %dx%d", _videoWidth, _videoHeight);
             emu.start();
-            flylog("[Flycast] emu.start() done — emulation running");
+            flylog("[Flycast] emu.start() done");
             gui_setState(GuiState::Closed);
             _isInitialized = YES;
         } catch (const std::exception &e) {
@@ -247,18 +241,7 @@ __weak FlycastGameCore *_current;
         }
     }
 
-    GLint fboBeforeRender = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboBeforeRender);
-    flylog("[Flycast] calling emu.render() — FBO=%d isRunning=%d", fboBeforeRender, (int)emu.running());
-    bool rendered = emu.render();
-    GLint fboAfterRender = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fboAfterRender);
-
-    static int frameCount = 0;
-    if (++frameCount <= 5 || frameCount % 60 == 0)
-        flylog("[Flycast] frame %d — emu.render()=%s FBO before=%d after=%d",
-               frameCount, rendered ? "true" : "false", fboBeforeRender, fboAfterRender);
-
+    emu.render();
     [self.renderDelegate presentDoubleBufferedFBO];
 }
 
