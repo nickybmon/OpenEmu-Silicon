@@ -317,12 +317,47 @@ static void* bridge_dlsym(void *handle, const char *symbol) {
     }
     
     NSString *bundleID = [self.coreBundle bundleIdentifier];
-    if ([bundleID containsString:@"Snes9x"] || [bundleID containsString:@"BSNES"] || [bundleID containsString:@"SNES"]) {
-        NSLog(@"[OELibretro] Core %@ detected: defaulting to RGB565", bundleID);
+    
+    // Categorize cores by system bit-depth (8/16-bit vs 32/64-bit)
+    // Per user: "there isnt anything are 15 bit", so we default low-bit systems to RGB565.
+    
+    NSArray *lowBitCores = @[
+        @"Nestopia", @"Snes9x", @"BSNES", @"SNES", @"Gambatte", @"mGBA", @"BeetleVB",
+        @"PokeMini", @"GenesisPlus", @"Picodrive", @"BeetlePCE", @"BeetlePCFX",
+        @"Stella", @"ProSystem", @"Atari800", @"VirtualJaguar", @"BeetleLynx",
+        @"BeetleNGP", @"BeetleWS", @"Potator", @"Vecx", @"blueMSX", @"GearColeco",
+        @"FreeIntv", @"O2EM"
+    ];
+    
+    NSArray *highBitCores = @[
+        @"melonDS", @"Mupen64Plus", @"Mednafen", @"Flycast", @"PCSX", @"PlayStation",
+        @"PPSSPP", @"Opera"
+    ];
+    
+    BOOL matched = NO;
+    for (NSString *name in lowBitCores) {
+        if ([bundleID containsString:name]) {
+            NSLog(@"[OELibretro] Low-bit core %@ detected: defaulting to RGB565", bundleID);
+            _retroPixelFormat = RETRO_PIXEL_FORMAT_RGB565;
+            matched = YES;
+            break;
+        }
+    }
+    
+    if (!matched) {
+        for (NSString *name in highBitCores) {
+            if ([bundleID containsString:name]) {
+                NSLog(@"[OELibretro] High-bit core %@ detected: defaulting to XRGB8888", bundleID);
+                _retroPixelFormat = RETRO_PIXEL_FORMAT_XRGB8888;
+                matched = YES;
+                break;
+            }
+        }
+    }
+    
+    if (!matched) {
+        NSLog(@"[OELibretro] Unknown core %@: defaulting to 16-bit (RGB565)", bundleID);
         _retroPixelFormat = RETRO_PIXEL_FORMAT_RGB565;
-    } else if ([bundleID containsString:@"Mednafen"] || [bundleID containsString:@"PCSX"] || [bundleID containsString:@"PlayStation"]) {
-        NSLog(@"[OELibretro] Core %@ detected: defaulting to XRGB8888 (32-bit)", bundleID);
-        _retroPixelFormat = RETRO_PIXEL_FORMAT_XRGB8888;
     }
 
     NSLog(@"[OELibretro] Attempting to load core from: %@", corePath);
@@ -436,6 +471,15 @@ static void* bridge_dlsym(void *handle, const char *symbol) {
 }
 
 - (OEIntSize)bufferSize {
+    NSString *bundleID = [self.coreBundle bundleIdentifier];
+    if ([bundleID containsString:@"PPSSPP"] || [bundleID containsString:@"PSP"]) {
+        // For PSP, force the buffer size to match the active screen area (480x272)
+        // because the core's max_width of 512 includes black padding that offsets the image.
+        size_t width = _avInfo.geometry.base_width ?: 480;
+        size_t height = _avInfo.geometry.base_height ?: 272;
+        return OEIntSizeMake((int)width, (int)height);
+    }
+    
     size_t width = _avInfo.geometry.max_width ?: 640;
     size_t height = _avInfo.geometry.max_height ?: 480;
     return OEIntSizeMake((int)width, (int)height);
