@@ -1077,14 +1077,16 @@ bool Emulator::render()
 		return false;
 	if (state != Running)
 		return false;
-	// The SH4 interpreter runs at ~10-20% of real speed on ARM64. A Dreamcast
-	// frame takes ~16ms of emulated time but up to ~500ms+ of real time during
-	// heavy workloads (GD-ROM loading, scene transitions). Use 2000ms when the
-	// interpreter is active so the game loop thread waits long enough.
+	// The SH4 interpreter runs at ~10-20% of real speed on ARM64. GD-ROM loading
+	// can take arbitrarily long under the interpreter, so we wait indefinitely
+	// (-1) rather than using a fixed timeout. rend_cancel_emu_wait() unblocks
+	// the render thread on quit via cancelEnqueue(), preventing a deadlock.
+	// With JIT/dynarec the emulator runs at full speed so the default per-field
+	// timeout (-1 passed to rend_single_frame uses its own default) is fine.
 #if FEAT_SHREC != DYNAREC_NONE
-	const int frameTimeout = config::DynarecEnabled ? -1 : 2000;
+	const int frameTimeout = config::DynarecEnabled ? 0 : -1;
 #else
-	const int frameTimeout = 2000;
+	const int frameTimeout = -1;
 #endif
 	return rend_single_frame(true, frameTimeout);
 }

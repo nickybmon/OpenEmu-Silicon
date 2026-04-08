@@ -265,8 +265,12 @@ bool rend_single_frame(const bool& enabled, int timeoutMs)
 {
 	FC_PROFILE_SCOPE;
 
+	// timeoutMs == -1: wait indefinitely (interpreter mode — GD-ROM loading can
+	// take arbitrarily long). rend_cancel_emu_wait() unblocks via cancelEnqueue()
+	// so there is no deadlock risk on quit.
+	// timeoutMs <= 0 (other): use the default per-field interval (20ms NTSC / 23ms PAL).
 	const int defaultTimeout = SPG_CONTROL.isPAL() ? 23 : 20;
-	const int timeout = (timeoutMs > 0) ? timeoutMs : defaultTimeout;
+	const int timeout = (timeoutMs == -1) ? -1 : (timeoutMs > 0) ? timeoutMs : defaultTimeout;
 	presented = false;
 	while (enabled && !presented)
 		if (!pvrQueue.waitAndExecute(timeout))
