@@ -137,7 +137,7 @@ __weak FlycastGameCore *_current;
 
     config::RendererType = RenderType::OpenGL;
     config::AudioBackend.set("openemu");
-    config::DynarecEnabled = false; // JIT crashes the OE helper process (EXC_BREAKPOINT); interpreter is reliable
+    config::DynarecEnabled = false;
     config::UseReios.override(true); // HLE BIOS: skips animated swirl, boots instantly on first launch
 
     addrspace::reserve();
@@ -193,13 +193,13 @@ __weak FlycastGameCore *_current;
             gui_init();
             theGLContext.init();
             emu.loadGame(_romPath.fileSystemRepresentation);
+            // loadGame calls config::Settings::instance().reset() then load(), both of
+            // which clear any override set before loadGame. Re-apply after loadGame so
+            // the JIT stays disabled when emu.start() launches the SH4 thread.
+            config::DynarecEnabled.override(false);
             rend_init_renderer();
             settings.display.width  = _videoWidth;
             settings.display.height = _videoHeight;
-            // gui_setState must be called before emu.start() so the render pipeline
-            // is in the Closed (game-running) state when the SH4 thread begins.
-            // Calling it after emu.start() races with the first frame and can cause
-            // rend_single_frame() to return false on every call during cold boot.
             gui_setState(GuiState::Closed);
             emu.start();
             _isInitialized = YES;

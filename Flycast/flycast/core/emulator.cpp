@@ -1077,7 +1077,17 @@ bool Emulator::render()
 		return false;
 	if (state != Running)
 		return false;
-	return rend_single_frame(true); // FIXME stop flag?
+	// The SH4 interpreter runs at ~10-20% of real speed on ARM64. A Dreamcast
+	// frame takes ~16ms of emulated time but ~160ms of real time, so the default
+	// 20ms rend_single_frame timeout expires before the first frame arrives.
+	// Use 500ms when the interpreter is active so the game loop thread waits
+	// long enough to receive frames during cold boot.
+#if FEAT_SHREC != DYNAREC_NONE
+	const int frameTimeout = config::DynarecEnabled ? -1 : 500;
+#else
+	const int frameTimeout = 500;
+#endif
+	return rend_single_frame(true, frameTimeout);
 }
 
 void Emulator::vblank()
