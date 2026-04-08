@@ -96,6 +96,7 @@ static void libretro_log_cb(enum retro_log_level level, const char *fmt, ...) {
 @interface OELibretroCoreTranslator ()
 @property (nonatomic, strong) NSBundle *coreBundle;
 @property (nonatomic, assign) enum retro_pixel_format retroPixelFormat;
+@property (nonatomic, assign) BOOL didExplicitlySetPixelFormat;
 @end
 
 static __thread __unsafe_unretained OELibretroCoreTranslator *_current = nil;
@@ -173,6 +174,7 @@ static bool libretro_environment_cb(unsigned cmd, void *data) {
         case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
             if (data && _current) {
                 _current.retroPixelFormat = *(enum retro_pixel_format *)data;
+                _current.didExplicitlySetPixelFormat = YES;
                 return true;
             }
             return false;
@@ -213,10 +215,18 @@ static void libretro_video_refresh_cb(const void *data, unsigned width, unsigned
                 const uint16_t *s16 = (const uint16_t *)(src + (y * pitch));
                 const uint32_t *s32 = (const uint32_t *)(src + (y * pitch));
 
-                // Auto-detect 32-bit pitch (XRGB8888) if the core hasn't explicitly set its format or if it matches 32-bit.
+                // Use the core's explicitly set format if available, otherwise fallback to our core-specific default.
                 enum retro_pixel_format effectiveFormat = coreFormat;
-                if (pitch == width * 4) {
-                    effectiveFormat = RETRO_PIXEL_FORMAT_XRGB8888;
+                
+                // If the core hasn't explicitly set its format, we check if it's a known high-res core (PSX) or use heuristic.
+                if (!_current.didExplicitlySetPixelFormat) {
+                    NSString *bundleID = [_current.coreBundle bundleIdentifier];
+                    BOOL isSNES = [bundleID containsString:@"Snes9x"] || [bundleID containsString:@"BSNES"] || [bundleID containsString:@"SNES"];
+                    
+                    if (pitch == width * 4 && !isSNES) {
+                        // For non-SNES cores with a 32-bit pitch, assume XRGB8888.
+                        effectiveFormat = RETRO_PIXEL_FORMAT_XRGB8888;
+                    }
                 }
                 
                 for (unsigned x = 0; x < width; x++) {
@@ -310,6 +320,9 @@ static void* bridge_dlsym(void *handle, const char *symbol) {
     if ([bundleID containsString:@"Snes9x"] || [bundleID containsString:@"BSNES"] || [bundleID containsString:@"SNES"]) {
         NSLog(@"[OELibretro] Core %@ detected: defaulting to RGB565", bundleID);
         _retroPixelFormat = RETRO_PIXEL_FORMAT_RGB565;
+    } else if ([bundleID containsString:@"Mednafen"] || [bundleID containsString:@"PCSX"] || [bundleID containsString:@"PlayStation"]) {
+        NSLog(@"[OELibretro] Core %@ detected: defaulting to XRGB8888 (32-bit)", bundleID);
+        _retroPixelFormat = RETRO_PIXEL_FORMAT_XRGB8888;
     }
 
     NSLog(@"[OELibretro] Attempting to load core from: %@", corePath);
