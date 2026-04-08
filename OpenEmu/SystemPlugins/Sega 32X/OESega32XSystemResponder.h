@@ -1,3 +1,4 @@
+#import <OpenEmuSystem/OpenEmuSystem.h>
 /*
  Copyright (c) 2013, OpenEmu Team
  
@@ -24,8 +25,9 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-@import OpenEmuSystem;
+#import <OpenEmuSystem/OpenEmuSystem.h>
 #import "OESega32XSystemResponderClient.h"
+
 
 OE_EXPORTED_CLASS
 @interface OESega32XSystemResponder : OESystemResponder

@@ -27,6 +27,17 @@
 #import "OEArcadeSystemResponder.h"
 #import "OEArcadeSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)buttonID forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+static const uint8_t kArcadeLibretroMap[] = {
+    4, 5, 2, 3, 6, 7, 8, 9, 10, 11, 0, 1
+};
+
 @implementation OEArcadeSystemResponder
 @dynamic client;
 
@@ -37,12 +48,26 @@
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushArcadeButton:(OEArcadeButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kArcadeLibretroMap)) ? kArcadeLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEArcadeSystemResponderClient>)client didPushArcadeButton:(OEArcadeButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseArcadeButton:(OEArcadeButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kArcadeLibretroMap)) ? kArcadeLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEArcadeSystemResponderClient>)client didReleaseArcadeButton:(OEArcadeButton)k forPlayer:aKey.player];
 }
 
 @end

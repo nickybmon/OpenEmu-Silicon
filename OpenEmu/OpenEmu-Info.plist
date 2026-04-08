@@ -156,10 +156,6 @@
 	<string></string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
-	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>wVICc/NGoDFzkEbDb63QMFpKlRs14e/WhIiwIngQGsg=</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

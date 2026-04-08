@@ -27,7 +27,20 @@
 #import "OEGGSystemResponder.h"
 #import "OEGGSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OEGGSystemResponder
+static const uint8_t kGGLibretroMap[] = { 4, 5, 6, 7, 8, 0, 3 };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,12 +50,26 @@
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushGGButton:(OEGGButton)aKey.key];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kGGLibretroMap)) ? kGGLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEGGSystemResponderClient>)client didPushGGButton:(OEGGButton)k];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseGGButton:(OEGGButton)aKey.key];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kGGLibretroMap)) ? kGGLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEGGSystemResponderClient>)client didReleaseGGButton:(OEGGButton)k];
 }
 
 @end

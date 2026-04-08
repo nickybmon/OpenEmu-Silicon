@@ -110,8 +110,11 @@ extension GameCoreManager: OEGameCoreHelper {
     }
 
     public func insertFile(at url: URL, completionHandler block: @escaping (Bool, Error?) -> Void) {
-        // we force unwrap, to ensure we panic, as the block will never be called
-        gameCoreHelper!.insertFile(at: url) { success, error in
+        guard let gameCoreHelper = gameCoreHelper else {
+            block(false, NSError(domain: "OEGameCoreErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Game core helper not available"]))
+            return
+        }
+        gameCoreHelper.insertFile(at: url) { success, error in
             DispatchQueue.main.async {
                 block(success, error)
             }
@@ -131,8 +134,11 @@ extension GameCoreManager: OEGameCoreHelper {
     }
 
     public func setShaderURL(_ url: URL, parameters: [String: NSNumber]?, completionHandler block: @escaping (Error?) -> Void) {
-        // we force unwrap, to ensure we panic, as the block will never be called
-        gameCoreHelper!.setShaderURL(url, parameters: parameters) { error in
+        guard let gameCoreHelper = gameCoreHelper else {
+            block(NSError(domain: "OEGameCoreErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Game core helper not available"]))
+            return
+        }
+        gameCoreHelper.setShaderURL(url, parameters: parameters) { error in
             DispatchQueue.main.async {
                 block(error)
             }
@@ -144,8 +150,8 @@ extension GameCoreManager: OEGameCoreHelper {
     }
     
     public func setupEmulation(completionHandler handler: @escaping (_ screenSize: OEIntSize, _ aspectSize: OEIntSize) -> Void) {
-        // we force unwrap, to ensure we panic, as the block will never be called
-        gameCoreHelper!.setupEmulation { screenSize, aspectSize in
+        guard let gameCoreHelper = gameCoreHelper else { return }
+        gameCoreHelper.setupEmulation { screenSize, aspectSize in
             DispatchQueue.main.async {
                 handler(screenSize, aspectSize)
             }
@@ -153,36 +159,61 @@ extension GameCoreManager: OEGameCoreHelper {
     }
     
     public func startEmulation(completionHandler handler: @escaping () -> Void) {
-        gameCoreHelper!.startEmulation {
+        guard let gameCoreHelper = gameCoreHelper else {
+            DispatchQueue.main.async(execute: handler)
+            return
+        }
+        gameCoreHelper.startEmulation {
             DispatchQueue.main.async(execute: handler)
         }
     }
-    
+
     public func resetEmulation(completionHandler handler: @escaping () -> Void) {
-        gameCoreHelper!.resetEmulation {
+        guard let gameCoreHelper = gameCoreHelper else {
+            DispatchQueue.main.async(execute: handler)
+            return
+        }
+        gameCoreHelper.resetEmulation {
             DispatchQueue.main.async(execute: handler)
         }
     }
-    
+
     public func stopEmulation(completionHandler handler: @escaping () -> Void) {
-        gameCoreHelper!.stopEmulation {
+        guard let gameCoreHelper = gameCoreHelper else {
+            DispatchQueue.main.async {
+                handler()
+                self.stop()
+            }
+            return
+        }
+        gameCoreHelper.stopEmulation {
             DispatchQueue.main.async {
                 handler()
                 self.stop()
             }
         }
     }
-    
+
     public func saveStateToFile(at fileURL: URL, completionHandler block: @escaping (Bool, Error?) -> Void) {
-        gameCoreHelper!.saveStateToFile(at: fileURL) { success, error in
+        guard let gameCoreHelper = gameCoreHelper else {
+            let error = NSError(domain: "OEGameCoreErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Game core helper not available"])
+            DispatchQueue.main.async { block(false, error) }
+            return
+        }
+        gameCoreHelper.saveStateToFile(at: fileURL) { success, error in
             DispatchQueue.main.async {
                 block(success, error)
             }
         }
     }
-    
+
     public func loadStateFromFile(at fileURL: URL, completionHandler block: @escaping (Bool, Error?) -> Void) {
-        gameCoreHelper!.loadStateFromFile(at: fileURL) { success, error in
+        guard let gameCoreHelper = gameCoreHelper else {
+            let error = NSError(domain: "OEGameCoreErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Game core helper not available"])
+            DispatchQueue.main.async { block(false, error) }
+            return
+        }
+        gameCoreHelper.loadStateFromFile(at: fileURL) { success, error in
             DispatchQueue.main.async {
                 block(success, error)
             }
@@ -190,7 +221,8 @@ extension GameCoreManager: OEGameCoreHelper {
     }
     
     public func captureOutputImage(completionHandler block: @escaping (NSBitmapImageRep) -> Void) {
-        gameCoreHelper!.captureOutputImage { image in
+        guard let gameCoreHelper = gameCoreHelper else { return }
+        gameCoreHelper.captureOutputImage { image in
             DispatchQueue.main.async {
                 block(image)
             }
@@ -229,27 +261,29 @@ extension GameCoreManager: OEGameCoreHelper {
 // MARK: - Synchronous image capture APIs
 
 extension GameCoreManager {
-    public func captureOutputImage() -> NSBitmapImageRep {
+    public func captureOutputImage() -> NSBitmapImageRep? {
+        guard let gameCoreHelper = gameCoreHelper else { return nil }
         let sem = DispatchSemaphore(value: 0)
         var res: NSBitmapImageRep?
-        gameCoreHelper!.captureOutputImage { image in
+        gameCoreHelper.captureOutputImage { image in
             res = image
             sem.signal()
         }
         
-        sem.wait()
-        return res!
+        _ = sem.wait(timeout: .now() + 1.0)
+        return res
     }
     
-    public func captureSourceImage() -> NSBitmapImageRep {
+    public func captureSourceImage() -> NSBitmapImageRep? {
+        guard let gameCoreHelper = gameCoreHelper else { return nil }
         let sem = DispatchSemaphore(value: 0)
         var res: NSBitmapImageRep?
-        gameCoreHelper!.captureSourceImage { image in
+        gameCoreHelper.captureSourceImage { image in
             res = image
             sem.signal()
         }
         
-        sem.wait()
-        return res!
+        _ = sem.wait(timeout: .now() + 1.0)
+        return res
     }
 }

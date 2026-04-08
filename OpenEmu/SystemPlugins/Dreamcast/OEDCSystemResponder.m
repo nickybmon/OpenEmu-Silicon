@@ -27,7 +27,20 @@
 #import "OEDCSystemResponder.h"
 #import "OEDCSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OEDCSystemResponder
+static const uint8_t kDCLibretroMap[] = { 4, 5, 6, 7, 0, 8, 1, 9, 3 };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,17 +50,45 @@
 
 - (void)changeAnalogEmulatorKey:(OESystemKey *)aKey value:(CGFloat)value
 {
-    [self.client didMoveDCJoystickDirection:(OEDCButton)aKey.key withValue:value forPlayer:aKey.player];
+    NSUInteger k = aKey.key;
+    id client = (id)self.client;
+    if ([client conformsToProtocol:@protocol(OELibretroInputReceiver)]) {
+        int16_t val = (int16_t)round(value * 32767.0);
+        switch (aKey.key) {
+            case OEDCAnalogUp:    [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:-val forPort:aKey.player]; break;
+            case OEDCAnalogDown:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:val  forPort:aKey.player]; break;
+            case OEDCAnalogLeft:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:-val forPort:aKey.player]; break;
+            case OEDCAnalogRight: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:val  forPort:aKey.player]; break;
+            case OEDCAnalogL:     [(id<OELibretroInputReceiver>)client receiveLibretroButton:12 forPort:aKey.player pressed:value > 0.5]; break;
+            case OEDCAnalogR:     [(id<OELibretroInputReceiver>)client receiveLibretroButton:13 forPort:aKey.player pressed:value > 0.5]; break;
+        }
+        return;
+    }
+    [client didMoveDCJoystickDirection:(OEDCButton)aKey.key withValue:value forPlayer:aKey.player];
 }
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushDCButton:(OEDCButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kDCLibretroMap)) ? kDCLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEDCSystemResponderClient>)client didPushDCButton:(OEDCButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseDCButton:(OEDCButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kDCLibretroMap)) ? kDCLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEDCSystemResponderClient>)client didReleaseDCButton:(OEDCButton)k forPlayer:aKey.player];
 }
 
 @end

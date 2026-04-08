@@ -27,7 +27,20 @@
 #import "OEA8SystemResponder.h"
 #import "OEA8SystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OEA8SystemResponder
+static const uint8_t kA8LibretroMap[] = { 4, 5, 6, 7, 0 };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -49,37 +62,53 @@
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushA8Button:(OEA8Button)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kA8LibretroMap)) ? kA8LibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEA8SystemResponderClient>)client didPushA8Button:(NSInteger)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseA8Button:(OEA8Button)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kA8LibretroMap)) ? kA8LibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEA8SystemResponderClient>)client didReleaseA8Button:(NSInteger)k forPlayer:aKey.player];
 }
 
 - (void)mouseMovedAtPoint:(OEIntPoint)aPoint
 {
-    [self.client mouseMovedAtPoint:aPoint];
+    if ([self.client respondsToSelector:@selector(mouseMovedAtPoint:)]) {
+        [self.client mouseMovedAtPoint:aPoint];
+    }
 }
 
 - (void)mouseDownAtPoint:(OEIntPoint)aPoint
 {
-    [self.client leftMouseDownAtPoint:aPoint];
+    if ([self.client respondsToSelector:@selector(leftMouseDownAtPoint:)]) [self.client leftMouseDownAtPoint:aPoint];
 }
 
 - (void)mouseUpAtPoint
 {
-    [self.client leftMouseUp];
+    if ([self.client respondsToSelector:@selector(leftMouseUp)]) [self.client leftMouseUp];
 }
 
 - (void)rightMouseDownAtPoint:(OEIntPoint)aPoint
 {
-    [self.client rightMouseDownAtPoint:aPoint];
+    if ([self.client respondsToSelector:@selector(rightMouseDownAtPoint:)]) [self.client rightMouseDownAtPoint:aPoint];
 }
 
 - (void)rightMouseUpAtPoint
 {
-    [self.client rightMouseUp];
+    if ([self.client respondsToSelector:@selector(rightMouseUp)]) [self.client rightMouseUp];
 }
 
 @end

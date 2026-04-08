@@ -27,7 +27,16 @@
 #import "OEGCSystemResponder.h"
 #import "OEGCSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
 @implementation OEGCSystemResponder
+static const uint8_t kGCLibretroMap[] = { 4, 5, 6, 7, 10, 8, 9, 11, 0, 1, 13, 12, 3, 2 };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,17 +46,48 @@
 
 - (void)changeAnalogEmulatorKey:(OESystemKey *)aKey value:(CGFloat)value
 {
-    [self.client didMoveGCJoystickDirection:(OEGCButton)aKey.key withValue:value forPlayer:aKey.player];
+    id client = (id)self.client;
+    if ([client respondsToSelector:@selector(receiveLibretroAnalogIndex:axis:value:forPort:)]) {
+        int16_t val = (int16_t)round(value * 32767.0);
+        switch (aKey.key) {
+            case OEGCAnalogUp:    [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:-val forPort:aKey.player]; break;
+            case OEGCAnalogDown:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:val  forPort:aKey.player]; break;
+            case OEGCAnalogLeft:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:-val forPort:aKey.player]; break;
+            case OEGCAnalogRight: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:val  forPort:aKey.player]; break;
+            case OEGCAnalogCUp:   [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:1 axis:1 value:-val forPort:aKey.player]; break;
+            case OEGCAnalogCDown: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:1 axis:1 value:val  forPort:aKey.player]; break;
+            case OEGCAnalogCLeft: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:1 axis:0 value:-val forPort:aKey.player]; break;
+            case OEGCAnalogCRight:[(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:1 axis:0 value:val  forPort:aKey.player]; break;
+            case OEGCButtonL:         [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:2 axis:0 value:val  forPort:aKey.player]; break;
+            case OEGCButtonR:         [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:2 axis:1 value:val  forPort:aKey.player]; break;
+        }
+        return;
+    }
+    [(id<OEGCSystemResponderClient>)client didMoveGCJoystickDirection:(OEGCButton)aKey.key withValue:value forPlayer:aKey.player];
 }
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushGCButton:(OEGCButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kGCLibretroMap)) ? kGCLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEGCSystemResponderClient>)client didPushGCButton:(OEGCButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseGCButton:(OEGCButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kGCLibretroMap)) ? kGCLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEGCSystemResponderClient>)client didReleaseGCButton:(OEGCButton)k forPlayer:aKey.player];
 }
 
 @end

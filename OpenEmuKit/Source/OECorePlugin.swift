@@ -311,138 +311,156 @@ public extension OECorePlugin {
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
-// ...
+//     * Redistributions of source code must retain the above copyright
+//       notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//     * Neither the name of the OpenEmu Team nor the
+//       names of its contributors may be used to endorse or promote products
+//       derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY OpenEmu Team ''AS IS'' AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL OpenEmu Team BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import Foundation
 
+/// Scans the application-support Cores folder for libretro `.dylib` files that were
+/// downloaded by the `CoreDownload` machinery but whose companion `.oecoreplugin`
+/// bundle is missing (e.g. after a crash mid-install, or a manually placed dylib).
+///
+/// For dylibs that already have a valid `.oecoreplugin` next to them the standard
+/// `OEPlugin.plugins()` scanner handles registration, so `syncCores()` purposely
+/// skips those to avoid duplicates.
+///
+/// System identifiers are resolved in order:
+///  1. From the dylib's companion `.oecoreplugin/Info.plist` if present (written by
+///     `CoreDownload` with the correct `OEGameCoreSystemIdentifiers` key).
+///  2. From the static dylib-filename → system-ID table embedded below, which mirrors
+///     `OELibretroBuildbot.allCores` (kept as a plain dictionary here so this file
+///     has no compile-time dependency on the OpenEmu app target).
 @objc(OECoreSyncManager)
-public class OECoreSyncManager: NSObject, XMLParserDelegate {
+public class OECoreSyncManager: NSObject {
+
     @objc public static let shared = OECoreSyncManager()
-    
-    private let localCoresPath: URL = {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("OpenEmu/Cores/Libs", isDirectory: true)
-    }()
-    
-    private let remoteURL = URL(string: "https://raw.githubusercontent.com/pystIC/OpenEmuARM64-metal4-shaders-core-updates/main/oecores.xml")!
-    
-    private var currentElement = ""
-    private var currentCoreID = ""
-    private var currentCoreName = ""
-    private var currentURL = ""
-    private var parsedCores: [[String: String]] = []
-    private var cachedCores: [OECorePlugin]?
-    
+
+    /// Application-support Cores folder — same location CoreDownload uses.
+    private var coresFolder: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("OpenEmu/Cores", isDirectory: true)
+    }
+
+    // Static fallback: dylib filename → OpenEmu system identifiers.
+    // Keep in sync with OELibretroBuildbot.allCores in the OpenEmu target.
+    // Keep in sync with OELibretroBuildbot.allCores in the OpenEmu target.
+    private static let systemIDsByDylib: [String: [String]] = [
+        "snes9x_libretro.dylib":           ["openemu.system.snes"],
+        "genesis_plus_gx_libretro.dylib":  ["openemu.system.genesis",
+                                             "openemu.system.gg",
+                                             "openemu.system.sms"],
+        "mupen64plus_next_libretro.dylib": ["openemu.system.n64"],
+        "pcsx_rearmed_libretro.dylib":     ["openemu.system.psx"],
+        "mgba_libretro.dylib":             ["openemu.system.gba"],
+        "nestopia_libretro.dylib":         ["openemu.system.nes"],
+        "gambatte_libretro.dylib":         ["openemu.system.gb", "openemu.system.gbc"],
+        "kronos_libretro.dylib":           ["openemu.system.saturn"],
+        "mednafen_pce_libretro.dylib":     ["openemu.system.pcengine"],
+        "stella_libretro.dylib":           ["openemu.system.2600"],
+        "mednafen_ngp_libretro.dylib":     ["openemu.system.ngp"],
+        "mednafen_wswan_libretro.dylib":   ["openemu.system.wswan"],
+        "melonds_libretro.dylib":          ["openemu.system.nds"],
+    ]
+
+    private var cachedPlugins: [OECorePlugin]?
+
+    /// Invalidate the plugin cache (called after a new core is installed).
+    @objc public func invalidateCache() {
+        cachedPlugins = nil
+    }
+
+    /// Returns `OECorePlugin` instances for every libretro dylib that does NOT yet
+    /// have a companion `.oecoreplugin` bundle handled by `OEPlugin.plugins()`.
     @objc public func syncCores() -> [OECorePlugin] {
-        if let cached = cachedCores { return cached }
-        var plugins: [OECorePlugin] = []
-        try? FileManager.default.createDirectory(at: localCoresPath, withIntermediateDirectories: true)
-        let contents = try? FileManager.default.contentsOfDirectory(at: localCoresPath, includingPropertiesForKeys: nil)
-        for url in contents ?? [] where url.pathExtension == "dylib" {
-            let coreID = url.deletingPathExtension().lastPathComponent
-            if let plugin = registerCore(id: coreID, url: url) {
-                plugins.append(plugin)
+        if let cached = cachedPlugins { return cached }
+
+        var result: [OECorePlugin] = []
+        let fm = FileManager.default
+
+        guard let contents = try? fm.contentsOfDirectory(
+            at: coresFolder, includingPropertiesForKeys: nil
+        ) else {
+            cachedPlugins = result
+            return result
+        }
+
+        for dylibURL in contents where dylibURL.pathExtension == "dylib" {
+            let stem = dylibURL.deletingPathExtension().lastPathComponent
+            let fauxURL = coresFolder.appendingPathComponent("\(stem).oecoreplugin")
+
+            // If a valid faux bundle already exists, OEPlugin.plugins() handles it.
+            if fm.fileExists(atPath: fauxURL.appendingPathComponent("Info.plist").path) {
+                continue
+            }
+
+            // Resolve system IDs: check companion plist (may exist without dylib entry),
+            // then fall back to the static table.
+            let sysIDs: [String] = {
+                if let plist = NSDictionary(contentsOf: fauxURL.appendingPathComponent("Info.plist")),
+                   let ids = plist["OESystemIdentifiers"] as? [String], !ids.isEmpty {
+                    return ids
+                }
+                return Self.systemIDsByDylib[dylibURL.lastPathComponent] ?? []
+            }()
+
+            guard !sysIDs.isEmpty else { continue }
+
+            if let plugin = makePlugin(dylib: dylibURL, stem: stem, sysIDs: sysIDs) {
+                result.append(plugin)
             }
         }
-        cachedCores = plugins
-        return plugins
+
+        cachedPlugins = result
+        return result
     }
-    
-    private func registerCore(id: String, url: URL) -> OECorePlugin? {
-        // Instantiate the ObjC Translator dynamically
-        guard let translatorClass = NSClassFromString("OELibretroCoreTranslator") as? NSObject.Type else {
-            print("Failed to find OELibretroCoreTranslator class in Objective-C runtime!")
+
+    // MARK: - Private helpers
+
+    private func makePlugin(dylib dylibURL: URL, stem: String, sysIDs: [String]) -> OECorePlugin? {
+        let fauxURL = coresFolder.appendingPathComponent("\(stem).oecoreplugin")
+        let fm = FileManager.default
+
+        do {
+            try fm.createDirectory(at: fauxURL, withIntermediateDirectories: true)
+        } catch {
+            print("[OECoreSyncManager] Could not create faux bundle at \(fauxURL.path): \(error)")
             return nil
         }
-        
-        // We must mock OECorePlugin. OpenEmu expects a physical NSBundle with an Info.plist natively to parse capabilities. 
-        // We generate a faux wrapper here dynamically around the `.dylib`.
-        let fakeBundlePath = localCoresPath.appendingPathComponent("\(id).oecoreplugin")
-        try? FileManager.default.createDirectory(at: fakeBundlePath, withIntermediateDirectories: true)
-        
-        let infoPlistPath = fakeBundlePath.appendingPathComponent("Info.plist")
-        
-        let prefix = id.components(separatedBy: "_").first ?? id
-        let systemId = "openemu.system.\(prefix.lowercased())"
-        
+
         let plist: [String: Any] = [
-            "CFBundleIdentifier": id,
-            "OEGameCoreClass": "OELibretroCoreTranslator", // The C-bridge class hooks in here!
-            "OEGameCorePlayerCount": 4,
-            "OELibretroCorePath": url.path, // Custom translation key so the bridge knows exactly what dylib to load via dlopen
-            "OEGameCoreSystemIdentifiers": [systemId]
+            "CFBundleName":                  stem,
+            "CFBundleIdentifier":            stem,
+            "OEGameCoreClass":               "OELibretroCoreTranslator",
+            "OEGameCorePlayerCount":         4,
+            "OELibretroCorePath":            dylibURL.path,
+            "OESystemIdentifiers":           sysIDs,
         ]
-        (plist as NSDictionary).write(to: infoPlistPath, atomically: true)
-        
-        if let plugin = OECorePlugin.corePlugin(bundleAtURL: fakeBundlePath) {
-            print("Successfully mocked OECorePlugin wrapper for \(id)")
+        (plist as NSDictionary).write(
+            to: fauxURL.appendingPathComponent("Info.plist"),
+            atomically: true
+        )
+
+        if let plugin = OECorePlugin.corePlugin(bundleAtURL: fauxURL) {
+            print("[OECoreSyncManager] Registered orphaned libretro core: \(stem)")
             return plugin
         }
-        
         return nil
-    }
-    
-    @objc public func updateRegistry() {
-        URLSession.shared.dataTask(with: remoteURL) { data, response, error in
-            guard let data = data else { return }
-            let parser = XMLParser(data: data)
-            parser.delegate = self
-            parser.parse()
-        }.resume()
-    }
-    
-    public func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
-        currentElement = elementName
-        if elementName == "core" {
-            currentCoreID = attributeDict["id"] ?? ""
-            currentCoreName = attributeDict["name"] ?? ""
-            currentURL = ""
-        }
-    }
-    
-    public func parser(_ parser: XMLParser, foundCharacters string: String) {
-        if currentElement == "url" {
-            currentURL += string
-        }
-    }
-    
-    public func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
-        if elementName == "core" {
-            parsedCores.append(["id": currentCoreID, "url": currentURL.trimmingCharacters(in: .whitespacesAndNewlines)])
-        }
-        if elementName == "cores" {
-            downloadMissingCores()
-        }
-    }
-    
-    private func downloadMissingCores() {
-        try? FileManager.default.createDirectory(at: localCoresPath, withIntermediateDirectories: true)
-        
-        for coreInfo in parsedCores {
-            guard let id = coreInfo["id"], let urlString = coreInfo["url"], let url = URL(string: urlString) else { continue }
-            
-            // Check if we need to unzip
-            let isZip = urlString.hasSuffix(".zip")
-            let destinationURL = localCoresPath.appendingPathComponent("\(id).dylib")
-            
-            if !FileManager.default.fileExists(atPath: destinationURL.path) {
-                print("Downloading missing libretro core: \(id) from \(urlString)")
-                let task = URLSession.shared.downloadTask(with: url) { tempURL, response, error in
-                    guard let tempURL = tempURL, error == nil else { return }
-                    if isZip {
-                        // Normally we would use SSZipArchive or NSTask to unzip
-                        let process = Process()
-                        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-                        process.arguments = ["-o", tempURL.path, "-d", self.localCoresPath.path]
-                        try? process.run()
-                        process.waitUntilExit()
-                    } else {
-                        try? FileManager.default.moveItem(at: tempURL, to: destinationURL)
-                    }
-                    DispatchQueue.main.async { self.cachedCores = nil }
-                }
-                task.resume()
-            }
-        }
     }
 }

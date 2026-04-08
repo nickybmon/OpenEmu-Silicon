@@ -1,3 +1,4 @@
+#import <OpenEmuSystem/OpenEmuSystem.h>
 /*
  Copyright (c) 2012, OpenEmu Team
  
@@ -24,8 +25,9 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-@import OpenEmuSystem;
+#import <OpenEmuSystem/OpenEmuSystem.h>
 #import "OEPS2SystemResponderClient.h"
+
 
 OE_EXPORTED_CLASS
 @interface OEPS2SystemResponder : OESystemResponder

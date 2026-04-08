@@ -27,7 +27,20 @@
 #import "OEColecoVisionSystemResponder.h"
 #import "OEColecoVisionSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OEColecoVisionSystemResponder
+static const uint8_t kColecoLibretroMap[] = { 4, 5, 6, 7, 8, 0, 10, 11, 12, 13, 14, 15, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,12 +50,26 @@
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushColecoVisionButton:(OEColecoVisionButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kColecoLibretroMap)) ? kColecoLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEColecoVisionSystemResponderClient>)client didPushColecoVisionButton:(OEColecoVisionButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseColecoVisionButton:(OEColecoVisionButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kColecoLibretroMap)) ? kColecoLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEColecoVisionSystemResponderClient>)client didReleaseColecoVisionButton:(OEColecoVisionButton)k forPlayer:aKey.player];
 }
 
 @end

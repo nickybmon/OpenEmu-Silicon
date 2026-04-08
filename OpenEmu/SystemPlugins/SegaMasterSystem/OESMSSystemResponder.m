@@ -27,7 +27,20 @@
 #import "OESMSSystemResponder.h"
 #import "OESMSSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OESMSSystemResponder
+static const uint8_t kSMSLibretroMap[] = { 4, 5, 6, 7, 0, 8, 3, 0xFF };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,30 +50,26 @@
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    OESMSButton button = (OESMSButton)aKey.key;
-    
-    switch(button)
-    {
-        case OESMSButtonStart : [self.client didPushSMSStartButton]; break;
-        case OESMSButtonReset : [self.client didPushSMSResetButton]; break;
-        default :
-            [self.client didPushSMSButton:button forPlayer:aKey.player];
-            break;
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kSMSLibretroMap)) ? kSMSLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
     }
+    [(id<OESMSSystemResponderClient>)client didPushSMSButton:(OESMSButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    OESMSButton button = (OESMSButton)aKey.key;
-    
-    switch(button)
-    {
-        case OESMSButtonStart : [self.client didReleaseSMSStartButton]; break;
-        case OESMSButtonReset : [self.client didReleaseSMSResetButton]; break;
-        default :
-            [self.client didReleaseSMSButton:button forPlayer:aKey.player];
-            break;
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kSMSLibretroMap)) ? kSMSLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
     }
+    [(id<OESMSSystemResponderClient>)client didReleaseSMSButton:(OESMSButton)k forPlayer:aKey.player];
 }
 
 - (void)mouseMovedAtPoint:(OEIntPoint)aPoint

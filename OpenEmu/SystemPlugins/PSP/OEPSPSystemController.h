@@ -1,3 +1,4 @@
+#import <OpenEmuSystem/OpenEmuSystem.h>
 /*
  Copyright (c) 2013, OpenEmu Team
  
@@ -24,7 +25,7 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-@import OpenEmuSystem;
+#import <OpenEmuSystem/OpenEmuSystem.h>
 
 // complessed ISO(9660) header format
 typedef struct ciso_header
@@ -48,6 +49,7 @@ typedef struct ciso_header
     unsigned char data[];               /* +?? : compressed or plain sector data */
 #endif
 }CISO_H;
+
 
 OE_EXPORTED_CLASS
 @interface OEPSPSystemController : OESystemController

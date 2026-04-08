@@ -1,3 +1,4 @@
+#import <OpenEmuSystem/OpenEmuSystem.h>
 /*
  Copyright (c) 2015, OpenEmu Team
 

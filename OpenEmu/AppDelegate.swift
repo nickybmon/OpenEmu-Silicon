@@ -327,42 +327,6 @@ class AppDelegate: NSObject {
     
     // MARK: -
 
-    fileprivate func validateDefaultPluginAssignments() {
-
-        // Remove Higan WIP systems as defaults if found, since our core port does not support them.
-        let defaults = UserDefaults.standard
-        if defaults.string(forKey: "defaultCore.openemu.system.gb") == "org.openemu.Higan" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.gb")
-        }
-        if defaults.string(forKey: "defaultCore.openemu.system.gba") == "org.openemu.Higan" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.gba")
-        }
-        if defaults.string(forKey: "defaultCore.openemu.system.nes") == "org.openemu.Higan" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.nes")
-        }
-
-        // Remove system defaults for deprecated core plugins.
-        if defaults.string(forKey: "defaultCore.openemu.system.gba") == "org.openemu.VisualBoyAdvance" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.gba")
-        }
-        if defaults.string(forKey: "defaultCore.openemu.system.gg") == "org.openemu.CrabEmu" ||
-           defaults.string(forKey: "defaultCore.openemu.system.gg") == "org.openemu.TwoMbit" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.gg")
-        }
-        if defaults.string(forKey: "defaultCore.openemu.system.ngp") == "org.openemu.NeoPop" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.ngp")
-        }
-        if defaults.string(forKey: "defaultCore.openemu.system.saturn") == "org.openemu.Yabause" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.saturn")
-        }
-        if defaults.string(forKey: "defaultCore.openemu.system.sms") == "org.openemu.CrabEmu" ||
-           defaults.string(forKey: "defaultCore.openemu.system.sms") == "org.openemu.TwoMbit" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.sms")
-        }
-        if defaults.string(forKey: "defaultCore.openemu.system.gc") == "org.openemu.Dolphin_Core" {
-            defaults.removeObject(forKey: "defaultCore.openemu.system.gc")
-        }
-    }
     
     fileprivate func loadPlugins(with library: OELibraryDatabase) {
         // Register all system controllers with the bindings controller.
@@ -614,7 +578,7 @@ class AppDelegate: NSObject {
     
     @objc(migrationForceUpdateCores:)
     func migrationForceUpdateCores() throws {
-        CoreUpdater.shared.checkForUpdatesAndInstall()
+        // Purged: CoreUpdater.shared.checkForUpdatesAndInstall()
     }
     
     @objc(migrationRemoveCoreDefaults:)
@@ -853,8 +817,6 @@ extension AppDelegate: NSMenuDelegate {
         
         NSDocumentController.shared.clearRecentDocuments(nil)
         
-        validateDefaultPluginAssignments()
-        
         DispatchQueue.main.async {
             self.loadDatabase()
         }
@@ -887,8 +849,6 @@ extension AppDelegate: NSMenuDelegate {
         loadPlugins(with: database)
         removeIncompatibleSaveStates(from: database)
 
-        
-        CoreUpdater.shared.checkForUpdatesAndInstall()
         
         if !restoreWindow {
             _ = mainWindowController.window

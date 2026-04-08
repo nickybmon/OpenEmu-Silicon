@@ -247,38 +247,24 @@ final class OEGameDocument: NSDocument {
     
     init(rom: OEDBRom, core: OECorePlugin?) throws {
         super.init()
-        do {
-            try setUpDocument(with: rom, using: core)
-        } catch {
-            throw error
-        }
+        try setUpDocument(with: rom, using: core)
     }
     
     init(game: OEDBGame, core: OECorePlugin?) throws {
         super.init()
-        do {
-            try setUpDocument(with: game.defaultROM!, using: core)
-        } catch {
-            throw error
-        }
+        guard let rom = game.defaultROM else { throw Errors.couldNotLoadROM }
+        try setUpDocument(with: rom, using: core)
     }
     
     init(saveState state: OEDBSaveState) throws {
         super.init()
-        do {
-            try setUpDocument(with: state)
-        } catch {
-            throw error
-        }
+        try setUpDocument(with: state)
     }
     
     private func setUpDocument(with saveState: OEDBSaveState) throws {
-        do {
-            try setUpDocument(with: saveState.rom!, using: OECorePlugin.corePlugin(bundleIdentifier: saveState.coreIdentifier))
-            saveStateForGameStart = saveState
-        } catch {
-            throw error
-        }
+        guard let rom = saveState.rom else { throw Errors.invalidSaveState }
+        try setUpDocument(with: rom, using: OECorePlugin.corePlugin(bundleIdentifier: saveState.coreIdentifier))
+        saveStateForGameStart = saveState
     }
     
     private func setUpDocument(with rom: OEDBRom, using core: OECorePlugin?) throws {
@@ -294,7 +280,7 @@ final class OEGameDocument: NSDocument {
             
             // try to fallback on external source
             if let sourceURL = sourceURL {
-                let name = (rom.fileName != nil) ? rom.fileName! : (sourceURL.lastPathComponent as NSString).deletingPathExtension
+                let name = rom.fileName ?? (sourceURL.lastPathComponent as NSString).deletingPathExtension
                 
                 if OEAlert.romDownloadRequired(name: name).runModal() == .alertFirstButtonReturn {
                     
@@ -331,8 +317,11 @@ final class OEGameDocument: NSDocument {
                         throw error
                     }
                     else {
-                        if error != nil || destination == nil {
-                            throw error!
+                        if let error = error {
+                            throw error
+                        }
+                        guard destination != nil else {
+                            throw Errors.couldNotLoadROM
                         }
                         
                         fileURL = destination
@@ -373,7 +362,9 @@ final class OEGameDocument: NSDocument {
         if corePlugin == nil {
             
             var nsError: Error?
-            CoreUpdater.shared.installCore(for: rom.game!) { plugin, error in
+            guard let game = rom.game else { throw Errors.couldNotLoadROM }
+            CoreUpdater.shared.installCore(for: game) { [weak self] plugin, error in
+                guard let self = self else { return }
                 if error == nil,
                    let plugin = plugin {
                     self.corePlugin = plugin
@@ -401,13 +392,21 @@ final class OEGameDocument: NSDocument {
             coreIdentifier: corePlugin?.bundleIdentifier ?? "Unknown"
         )
 
+        guard corePlugin != nil else {
+            throw Errors.noCore
+        }
+
         gameCoreManager = newGameCoreManager(with: corePlugin)
         gameViewController = GameViewController(document: self)
     }
     
     deinit {
         if let url = romFileURL, url != rom.url {
-            try? FileManager.default.removeItem(at: url)
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch {
+                os_log(.error, log: .default, "Failed to clean up decompressed ROM at %{public}@: %{public}@", url.path, error.localizedDescription)
+            }
         }
     }
     
@@ -502,10 +501,11 @@ final class OEGameDocument: NSDocument {
                 alert.alternateButtonTitle = NSLocalizedString("Cancel", comment: "")
                 
                 if alert.runModal() == .alertFirstButtonReturn {
-                    let rom = OEDBRom.object(with: romID, in: context)!
-                    
+                    guard let rom = OEDBRom.object(with: romID, in: context) else { return }
+
                     // Ugly hack to start imported games in main window
-                    let mainWindowController = (NSApp.delegate as! AppDelegate).mainWindowController
+                    guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+                    let mainWindowController = appDelegate.mainWindowController
                     if !mainWindowController.mainWindowRunsGame {
                         mainWindowController.startGame(rom.game)
                     } else {
@@ -529,13 +529,8 @@ final class OEGameDocument: NSDocument {
             } catch {
                 throw error
             }
-        } else if let rom = game?.defaultROM {
-            do {
-                // TODO: Load rom that was just imported instead of the default one
-                try setUpDocument(with: rom, using: nil)
-            } catch {
-                throw error
-            }
+        } else if let rom = (game?.roms as? Set<OEDBRom>)?.first(where: { $0.url == url }) ?? game?.defaultROM {
+            try setUpDocument(with: rom, using: nil)
         }
     }
     
@@ -560,32 +555,40 @@ final class OEGameDocument: NSDocument {
             return
         }
         
-        saveState(name: OEDBSaveState.autosaveName) {
+        saveState(name: OEDBSaveState.autosaveName) { [weak self] in
+            guard let self = self else { return }
             self.emulationStatus = .terminating
             // TODO: #567 and #568 need to be fixed first
             //removeDeviceNotificationObservers()
-            
-            self.gameCoreManager?.stopEmulation() {
+
+            self.gameCoreManager?.stopEmulation() { [weak self] in
+                guard let self = self else { return }
                 SentryService.addBreadcrumb(message: "Emulation stopped", category: "emulation")
                 SentryService.clearGameContext()
                 OEBindingsController.default.systemBindings(for: self.systemPlugin.controller).remove(self)
 
                 self.emulationStatus = .notSetup
-                
+
                 self.gameCoreManager = nil
-                
+
                 if let lastPlayStartDate = self.lastPlayStartDate {
                     self.rom.addTimeIntervalToPlayTime(abs(lastPlayStartDate.timeIntervalSinceNow))
                 }
                 self.lastPlayStartDate = nil
-                
-                super.canClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
+
+                self.performSuperCanClose(withDelegate: delegate, shouldClose: shouldCloseSelector, contextInfo: contextInfo)
             }
         }
     }
     
+    /// Wrapper that calls super.canClose — needed because Swift does not allow
+    /// super calls inside closures that capture self.
+    private func performSuperCanClose(withDelegate delegate: Any, shouldClose: Selector?, contextInfo: UnsafeMutableRawPointer?) {
+        super.canClose(withDelegate: delegate, shouldClose: shouldClose, contextInfo: contextInfo)
+    }
+
     // MARK: - Setup
-    
+
     func setUpGame(completionHandler handler: @escaping (_ success: Bool, _ error: Error?) -> Void) {
         NSLog("[OEGameDocument] setUpGame() called")
         do {
@@ -609,64 +612,78 @@ final class OEGameDocument: NSDocument {
         // MARK: Save Sync — Pre-launch cloud check
         // Before loading the ROM, check whether a newer cloud save exists.
         // This runs asynchronously; emulation proceeds after the check completes.
-        performPreLaunchSyncCheckIfNeeded {
-            self.gameCoreManager?.loadROM(completionHandler: {
-            self.gameCoreManager?.setupEmulation() { screenSize, aspectSize in
-                self.gameViewController.setScreenSize(screenSize, aspectSize: aspectSize)
-                
-                self.emulationStatus = .setup
-                
-                // TODO: #567 and #568 need to be fixed first
-                //self.addDeviceNotificationObservers()
-                
-                self.disableOSSleep()
-                self.rom.incrementPlayCount()
-                self.rom.markAsPlayedNow()
-                self.lastPlayStartDate = Date()
-                
-                if let saveStateForGameStart = self.saveStateForGameStart {
-                    self.loadState(state: saveStateForGameStart)
-                    self.saveStateForGameStart = nil
-                }
-                
-                // set initial volume
-                self.setVolume(self.volume, asDefault: false)
-                
-                // set initial image adjustments
-                self.imageSaturation = Self.clampedSaturation((UserDefaults.standard.object(forKey: OEGameSaturationKey) as? Float) ?? 1.0)
-                self.imageGamma = Self.clampedGamma((UserDefaults.standard.object(forKey: OEGameGammaKey) as? Float) ?? 1.0)
-                
-                self.gameCoreHelper?.setGlobalShaderParameters(gamma: CGFloat(self.imageGamma), saturation: CGFloat(self.imageSaturation))
-                
-                OEBindingsController.default.systemBindings(for: self.systemPlugin.controller).add(self)
-                
-                self.gameCoreManager?.setHandleEvents(self.handleEvents)
-                self.gameCoreManager?.setHandleKeyboardEvents(self.handleKeyboardEvents)
-                
-                handler(true, nil)
-            }
-        }, errorHandler: { error in
-            self.emulationStatus = .notSetup
-            if let url = self.decompressedROMFileURL {
-                try? FileManager.default.removeItem(at: url)
-            }
-            OEBindingsController.default.systemBindings(for: self.systemPlugin.controller).remove(self)
-            self.gameCoreManager = nil
-            self.stopEmulation(self)
-            
-            let rootError = error as NSError
-            if rootError.domain == NSCocoaErrorDomain,
-               rootError.code >= NSXPCConnectionErrorMinimum,
-               rootError.code <= NSXPCConnectionErrorMaximum {
-                let error = Errors.gameCoreCrashed(self.corePlugin, self.systemIdentifier, rootError)
-                handler(false, error)
+        performPreLaunchSyncCheckIfNeeded { [weak self] in
+            guard let self = self else {
+                handler(false, nil)
                 return
             }
             
-            // TODO: the setup completion handler shouldn't be the place where non-setup-related errors are handled!
-            handler(false, error)
-        })
-        } // end performPreLaunchSyncCheckIfNeeded
+            self.gameCoreManager?.loadROM(completionHandler: { [weak self] in
+                guard let self = self else {
+                    handler(false, nil)
+                    return
+                }
+                
+                self.gameCoreManager?.setupEmulation { [weak self] screenSize, aspectSize in
+                    guard let self = self else {
+                        handler(false, nil)
+                        return
+                    }
+                    
+                    self.gameViewController.setScreenSize(screenSize, aspectSize: aspectSize)
+                    self.emulationStatus = .setup
+                    
+                    self.disableOSSleep()
+                    self.rom.incrementPlayCount()
+                    self.rom.markAsPlayedNow()
+                    self.lastPlayStartDate = Date()
+                    
+                    if let saveStateForGameStart = self.saveStateForGameStart {
+                        self.loadState(state: saveStateForGameStart)
+                        self.saveStateForGameStart = nil
+                    }
+                    
+                    // set initial volume
+                    self.setVolume(self.volume, asDefault: false)
+                    
+                    // set initial image adjustments
+                    self.imageSaturation = Self.clampedSaturation((UserDefaults.standard.object(forKey: OEGameSaturationKey) as? Float) ?? 1.0)
+                    self.imageGamma = Self.clampedGamma((UserDefaults.standard.object(forKey: OEGameGammaKey) as? Float) ?? 1.0)
+                    self.gameCoreHelper?.setGlobalShaderParameters(gamma: CGFloat(self.imageGamma), saturation: CGFloat(self.imageSaturation))
+                    
+                    OEBindingsController.default.systemBindings(for: self.systemPlugin.controller).add(self)
+                    
+                    self.gameCoreManager?.setHandleEvents(self.handleEvents)
+                    self.gameCoreManager?.setHandleKeyboardEvents(self.handleKeyboardEvents)
+                    
+                    handler(true, nil)
+                }
+            }, errorHandler: { [weak self] error in
+                guard let self = self else {
+                    handler(false, error)
+                    return
+                }
+                
+                self.emulationStatus = .notSetup
+                if let url = self.decompressedROMFileURL {
+                    try? FileManager.default.removeItem(at: url)
+                }
+                OEBindingsController.default.systemBindings(for: self.systemPlugin.controller).remove(self)
+                self.gameCoreManager = nil
+                self.stopEmulation(self)
+                
+                let rootError = error as NSError
+                if rootError.domain == NSCocoaErrorDomain,
+                   rootError.code >= NSXPCConnectionErrorMinimum,
+                   rootError.code <= NSXPCConnectionErrorMaximum {
+                    let error = Errors.gameCoreCrashed(self.corePlugin, self.systemIdentifier, rootError)
+                    handler(false, error)
+                    return
+                }
+                
+                handler(false, error)
+            })
+        }
     }
     
     private func setUpGameCoreManager(using core: OECorePlugin, completionHandler: @escaping () -> Void) {
@@ -1301,11 +1318,12 @@ final class OEGameDocument: NSDocument {
     // MARK: - Cheats
     
     var supportsCheats: Bool {
-        return corePlugin.supportsCheatCode(forSystemIdentifier: systemPlugin.systemIdentifier)
+        return corePlugin?.supportsCheatCode(forSystemIdentifier: systemPlugin.systemIdentifier) ?? false
     }
     
     /// In order to load cheats, we need the core plugin and the ROM to be set.
     private func loadCheats() {
+        guard corePlugin != nil else { return }
         if supportsCheats,
            let md5Hash = rom.md5Hash {
             let cheatsXML = Cheats(md5Hash: md5Hash)

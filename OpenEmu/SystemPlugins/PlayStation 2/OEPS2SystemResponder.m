@@ -27,6 +27,9 @@
 #import "OEPS2SystemResponder.h"
 #import "OEPS2SystemResponderClient.h"
 
+
+
+
 @implementation OEPS2SystemResponder
 @dynamic client;
 
@@ -37,17 +40,20 @@
 
 - (void)changeAnalogEmulatorKey:(OESystemKey *)aKey value:(CGFloat)value
 {
+    NSUInteger k = aKey.key;
     [self.client didMovePS2JoystickDirection:(OEPS2Button)aKey.key withValue:value forPlayer:aKey.player];
 }
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushPS2Button:(OEPS2Button)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    [(id<OEPS2SystemResponderClient>)client didPushPS2Button:(OEPS2Button)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleasePS2Button:(OEPS2Button)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    [(id<OEPS2SystemResponderClient>)client didReleasePS2Button:(OEPS2Button)k forPlayer:aKey.player];
 }
 
 @end

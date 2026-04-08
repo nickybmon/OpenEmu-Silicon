@@ -129,45 +129,118 @@ extension CoreDownload: URLSessionDownloadDelegate {
         let coresFolder = URL.oeApplicationSupportDirectory
             .appendingPathComponent("Cores", isDirectory: true)
         
-        // TODO: per URLSession docs
-        //  "If you choose to open the file for reading, you should do the actual reading in another thread to avoid blocking the delegate queue."
-        guard
-            let fileName = ArchiveHelper.decompressFileInArchive(at: location, toDirectory: coresFolder)
-        else { return }
-        
-        var fullPluginURL = coresFolder.appendingPathComponent(fileName)
-        
-        if fullPluginURL.pathExtension == "dylib" {
-            let fauxPluginURL = coresFolder.appendingPathComponent("\(bundleIdentifier).oecoreplugin")
-            try? FileManager.default.createDirectory(at: fauxPluginURL, withIntermediateDirectories: true)
-            let plist: [String: Any] = [
-                "CFBundleName": bundleIdentifier,
-                "CFBundleIdentifier": bundleIdentifier,
-                "OEGameCoreClass": "OELibretroCoreTranslator", 
-                "OEGameCorePlayerCount": 4,
-                "OELibretroCorePath": fullPluginURL.path 
-            ]
-            (plist as NSDictionary).write(to: fauxPluginURL.appendingPathComponent("Info.plist"), atomically: true)
-            fullPluginURL = fauxPluginURL
+        // Move the file to a temporary location we control, because 'location' is deleted when this method returns.
+        let tempLocation = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString + ".zip")
+        do {
+            try FileManager.default.moveItem(at: location, to: tempLocation)
+        } catch {
+            let error = NSError(domain: "OEErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to move downloaded file to temporary location: \(error.localizedDescription)"])
+            delegate?.coreDownloadDidFail?(self, withError: error)
+            return
         }
         
-        DLog("Core (\(bundleIdentifier)) extracted to application support folder.")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else {
+                try? FileManager.default.removeItem(at: tempLocation)
+                return
+            }
+            
+            defer { try? FileManager.default.removeItem(at: tempLocation) }
+            
+            guard let fileName = ArchiveHelper.decompressFileInArchive(at: tempLocation, toDirectory: coresFolder) else {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    let error = NSError(domain: "OEErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to decompress core archive"])
+                    self.delegate?.coreDownloadDidFail?(self, withError: error)
+                }
+                return
+            }
 
-        adHocSign(fullPluginURL)
+            var fullPluginURL = coresFolder.appendingPathComponent(fileName)
 
-        guard let plugin = OECorePlugin.corePlugin(bundleAtURL: fullPluginURL) else {
-            return assertionFailure()
-        }
-        
-        if hasUpdate {
-            // flush bundle cache as NSBundle still returns the infoDictionary of the previous version
-            plugin.flushBundleCache()
-            version = plugin.version
-            hasUpdate = false
-            canBeInstalled = false
-        }
-        else if canBeInstalled {
-            updateProperties(with: plugin)
+            if fullPluginURL.pathExtension == "dylib" {
+                let fauxPluginURL = coresFolder.appendingPathComponent("\(self.bundleIdentifier).oecoreplugin")
+                let contentsURL = fauxPluginURL.appendingPathComponent("Contents")
+                let binURL = contentsURL.appendingPathComponent("MacOS")
+                do {
+                    try FileManager.default.createDirectory(at: binURL, withIntermediateDirectories: true)
+                } catch {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        let error = NSError(domain: "OEErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to create plugin bundle directory: \(error.localizedDescription)"])
+                        self.delegate?.coreDownloadDidFail?(self, withError: error)
+                    }
+                    return
+                }
+
+                // Move the extracted dylib into the bundle's MacOS folder with a standardized name.
+                let dylibDestinationURL = binURL.appendingPathComponent("libretro.dylib")
+                do {
+                    try FileManager.default.moveItem(at: fullPluginURL, to: dylibDestinationURL)
+                } catch {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        let error = NSError(domain: "OEErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to move dylib into plugin bundle: \(error.localizedDescription)"])
+                        self.delegate?.coreDownloadDidFail?(self, withError: error)
+                    }
+                    return
+                }
+                fullPluginURL = dylibDestinationURL
+
+                // Resolve system identifiers: prefer what CoreDownload already knows (populated by
+                // OELibretroBuildbot.injectCoreDownloads), fall back to the static registry.
+                let sysIDs: [String] = {
+                    if !self.systemIdentifiers.isEmpty { return self.systemIdentifiers }
+                    return OELibretroBuildbot.systemIdentifiers(forDylibFilename: fullPluginURL.lastPathComponent)
+                }()
+
+                let plist: [String: Any] = [
+                    "CFBundleName":                  self.bundleIdentifier,
+                    "CFBundleIdentifier":            self.bundleIdentifier,
+                    "CFBundleExecutable":            "libretro.dylib",
+                    "CFBundlePackageType":           "BNDL",
+                    "CFBundleInfoDictionaryVersion": "6.0",
+                    "OEGameCoreClass":               "OELibretroCoreTranslator",
+                    "OEGameCorePlayerCount":         4,
+                    "OELibretroCorePath":            fullPluginURL.path,
+                    "OESystemIdentifiers":           sysIDs
+                ]
+
+                let plistWriteSuccess = (plist as NSDictionary).write(to: contentsURL.appendingPathComponent("Info.plist"), atomically: true)
+                if !plistWriteSuccess {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        let error = NSError(domain: "OEErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to write Info.plist for core plugin bundle"])
+                        self.delegate?.coreDownloadDidFail?(self, withError: error)
+                    }
+                    return
+                }
+                fullPluginURL = fauxPluginURL
+            }
+            
+            self.adHocSign(fullPluginURL)
+            
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                
+                guard let plugin = OECorePlugin.corePlugin(bundleAtURL: fullPluginURL) else {
+                    let error = NSError(domain: "OEErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to load core plugin after extraction"])
+                    self.delegate?.coreDownloadDidFail?(self, withError: error)
+                    return
+                }
+                
+                DLog("Core (\(self.bundleIdentifier)) extracted and loaded.")
+                
+                if self.hasUpdate {
+                    plugin.flushBundleCache()
+                    self.version = plugin.version
+                    self.hasUpdate = false
+                    self.canBeInstalled = false
+                }
+                else if self.canBeInstalled {
+                    self.updateProperties(with: plugin)
+                }
+            }
         }
     }
 }

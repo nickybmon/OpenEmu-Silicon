@@ -23,6 +23,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import Cocoa
+import os.log
 
 private extension NSUserInterfaceItemIdentifier {
     static let coreColumn    = NSUserInterfaceItemIdentifier("coreColumn")
@@ -48,8 +49,11 @@ final class PrefCoresController: NSViewController {
         coreListObservation = CoreUpdater.shared.observe(\CoreUpdater.coreList) { [weak self] _, _ in
             self?.coresTableView.reloadData()
         }
-        CoreUpdater.shared.checkForNewCores()   // TODO: check error from completion handler
-        CoreUpdater.shared.checkForUpdates()
+        CoreUpdater.shared.checkForNewCores { error in
+            if let error = error {
+                os_log(.error, "Failed to check for new cores: %{public}@", error.localizedDescription)
+            }
+        }
 
         for column in coresTableView.tableColumns {
             switch column.identifier {

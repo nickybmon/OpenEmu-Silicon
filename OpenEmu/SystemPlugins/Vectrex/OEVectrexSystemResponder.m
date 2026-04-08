@@ -27,7 +27,20 @@
 #import "OEVectrexSystemResponder.h"
 #import "OEVectrexSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OEVectrexSystemResponder
+static const uint8_t kVectrexLibretroMap[] = { 8, 0, 1, 9 };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,36 +50,56 @@
 
 - (void)changeAnalogEmulatorKey:(OESystemKey *)aKey value:(CGFloat)value
 {
-    OEVectrexButton button = (OEVectrexButton)aKey.key;
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    OEVectrexButton button = (OEVectrexButton)k;
+
+    if ([client respondsToSelector:@selector(receiveLibretroAnalogIndex:axis:value:forPort:)]) {
+        int16_t val = (int16_t)round(value * 32767.0);
+        switch (button) {
+            case OEVectrexAnalogUp:    [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:-val forPort:aKey.player]; break;
+            case OEVectrexAnalogDown:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:val  forPort:aKey.player]; break;
+            case OEVectrexAnalogLeft:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:-val forPort:aKey.player]; break;
+            case OEVectrexAnalogRight: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:val  forPort:aKey.player]; break;
+            default: break;
+        }
+        return;
+    }
+
     if (button == OEVectrexAnalogDown || button == OEVectrexAnalogLeft || button == OEVectrexAnalogRight || button == OEVectrexAnalogUp)
-        [self.client didMoveVectrexJoystickDirection:button withValue:value forPlayer:aKey.player];
+        [(id<OEVectrexSystemResponderClient>)client didMoveVectrexJoystickDirection:button withValue:value forPlayer:aKey.player];
     else if (fabs(value) > 0.001f)
     {
-        [self.client didPushVectrexButton:button forPlayer:aKey.player];
+        [(id<OEVectrexSystemResponderClient>)client didPushVectrexButton:button forPlayer:aKey.player];
     }
     else
     {
-        [self.client didReleaseVectrexButton:button forPlayer:aKey.player];
+        [(id<OEVectrexSystemResponderClient>)client didReleaseVectrexButton:button forPlayer:aKey.player];
     }
- 
 }
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    OEVectrexButton button = (OEVectrexButton)aKey.key;
-    //if (button == OEVectrexAnalogDown || button == OEVectrexAnalogLeft || button == OEVectrexAnalogRight || button == OEVectrexAnalogUp)
-    //    [self changeAnalogEmulatorKey:aKey value:1.0f];
-    //else
-        [self.client didPushVectrexButton:button forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kVectrexLibretroMap)) ? kVectrexLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEVectrexSystemResponderClient>)client didPushVectrexButton:(OEVectrexButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    OEVectrexButton button = (OEVectrexButton)aKey.key;
-    //if (button == OEVectrexAnalogDown || button == OEVectrexAnalogLeft || button == OEVectrexAnalogRight || button == OEVectrexAnalogUp)
-    //    [self changeAnalogEmulatorKey:aKey value:0.0f];
-    //else
-        [self.client didReleaseVectrexButton:button forPlayer:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kVectrexLibretroMap)) ? kVectrexLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEVectrexSystemResponderClient>)client didReleaseVectrexButton:(OEVectrexButton)k forPlayer:aKey.player];
 }
 
 @end

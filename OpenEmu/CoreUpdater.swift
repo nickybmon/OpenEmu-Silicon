@@ -57,14 +57,33 @@ final class CoreUpdater: NSObject {
     
     override init() {
         super.init()
-        
+        syncInstalledCores()
+    }
+    
+    private func syncInstalledCores() {
         for plugin in OECorePlugin.allPlugins {
-            let download = CoreDownload(plugin: plugin)
-            download.delegate = self
             let bundleID = plugin.bundleIdentifier.lowercased()
+
+            let download = coresDict[bundleID] ?? CoreDownload(plugin: plugin)
+
+            // Prioritize the Libretro Buildbot for all supported cores to reach the
+            // "Plug and Play" goal, bypassing legacy Sparkle appcasts.
+            if let buildbotCore = OELibretroBuildbot.core(forBundleIdentifier: bundleID) {
+                download.appcastItem = CoreAppcastItem(
+                    url:          buildbotCore.downloadURL,
+                    version:      "Nightly",
+                    minOSVersion: "11.0"
+                )
+                // Patch system identifiers for cores installed before the plist key was
+                // corrected to OESystemIdentifiers (old installs used OEGameCoreSystemIdentifiers).
+                if download.systemIdentifiers.isEmpty {
+                    download.systemIdentifiers = buildbotCore.systemIdentifiers
+                }
+            }
+
+            download.delegate = self
             coresDict[bundleID] = download
         }
-        
         updateCoreList()
     }
     
@@ -76,167 +95,14 @@ final class CoreUpdater: NSObject {
         didChangeValue(forKey: #keyPath(coreList))
     }
     
-    @objc func checkForUpdates() {
-        guard Thread.isMainThread else {
-            performSelector(onMainThread: #selector(checkForUpdates), with: nil, waitUntilDone: false)
-            return
-        }
-        
-        for plugin in OECorePlugin.allPlugins {
-            if let appcastURLString = plugin.infoDictionary["SUFeedURL"] as? String,
-               let feedURL = URL(string: appcastURLString) {
-                checkForUpdateInformation(url: feedURL, plugin: plugin) { item in
-                    DispatchQueue.main.async {
-                        self.updaterDidFindValidUpdate(for: plugin, item: item)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func checkForUpdateInformation(url: URL, plugin: OECorePlugin, handler: @escaping (CoreAppcastItem) -> Void) {
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error {
-                if #available(macOS 11.0, *) {
-                    Logger.download.error("Failed to download \(url, privacy: .public): \(error, privacy: .public)")
-                }
-                return
-            }
-            
-            guard let data else {
-                if #available(macOS 11.0, *) {
-                    Logger.download.error("Data was nil for \(url, privacy: .public): \(error, privacy: .public)")
-                }
-                return
-            }
-            
-            do {
-                let items: [XMLElement]
-                let appcast = try XMLDocument(data: data)
-                items = try appcast.nodes(forXPath: "/rss/channel/item") as! [XMLElement]
-                
-                for item in items {
-                    if let enclosure = item.elements(forName: "enclosure").first,
-                       let fileURL = enclosure.attribute(forName: "url")?.stringValue,
-                       let url = URL(string: fileURL),
-                       let version = enclosure.attribute(forName: "sparkle:version")?.stringValue,
-                       let minOSVersion = item.elements(forName: "sparkle:minimumSystemVersion").first?.stringValue,
-                       SUStandardVersionComparator.default.compareVersion(version, toVersion: plugin.version) == .orderedDescending
-                    {
-                        let pubDateString = item.elements(forName: "pubDate").first?.stringValue
-                        let item = CoreAppcastItem(url: url, version: version, minOSVersion: minOSVersion, pubDate: pubDateString)
-                        if item.isSupported {
-                            handler(item)
-                        }
-                    }
-                }
-            } catch {
-                if #available(macOS 11.0, *) {
-                    Logger.download.error("Failed to process XML document for \(url, privacy: .public): \(error, privacy: .public)")
-                }
-            }
-        }
-        
-        task.resume()
-    }
-    
-    func checkForUpdatesAndInstall() {
-        if let val = ProcessInfo.processInfo.environment["OE_DISABLE_UPDATE_CHECK"] as? NSString, val.boolValue {
-            if #available(macOS 11.0, *) {
-                Logger.download.info("OE_DISABLE_UPDATE_CHECK found; skipping check for updates.")
-            }
-            return
-        }
-        autoInstall = true
-        checkForUpdates()
-    }
     
     func checkForNewCores(completionHandler handler: ((_ error: Error?) -> Void)? = nil) {
-        guard lastCoreListURLTask == nil else {
-            handler?(Errors.newCoreCheckAlreadyPendingError)
-            return
-        }
-        
-        let coreListURL = URL(string: Bundle.main.infoDictionary!["OECoreListURL"] as! String)!
-        
-        lastCoreListURLTask = URLSession.shared.dataTask(with: coreListURL) { data, response, error in
-            defer {
-                DispatchQueue.main.async {
-                    if error == nil {
-                        self.updateCoreList()
-                    }
-                    
-                    handler?(error)
-                    
-                    self.lastCoreListURLTask = nil
-                }
-            }
-            
-            if let error {
-                if #available(macOS 11.0, *) {
-                    Logger.download.error("Failed to check for new cores for \(coreListURL, privacy: .public): \(error, privacy: .public)")
-                }
-                return
-            }
-            
-            guard let data else {
-                if #available(macOS 11.0, *) {
-                    Logger.download.error("Data was nil for \(coreListURL, privacy: .public)")
-                }
-                return
-            }
-
-            if let coreList = try? XMLDocument(data: data, options: []),
-               let coreNodes = try? coreList.nodes(forXPath: "/cores/core") as? [XMLElement] {
-                DispatchQueue.main.async {
-                    for coreNode in coreNodes {
-                        guard
-                            let coreID = coreNode.attribute(forName: "id")?.stringValue?.lowercased(),
-                            self.coresDict[coreID] == nil,
-                            let coreName = coreNode.attribute(forName: "name")?.stringValue,
-                            let systemNodes = try? coreNode.nodes(forXPath: "./systems/system") as? [XMLElement],
-                            let downloadURLString = coreNode.attribute(forName: "downloadURL")?.stringValue,
-                            let downloadURL = URL(string: downloadURLString)
-                        else { continue }
-                        
-                        let download = CoreDownload()
-                        download.name = coreName
-                        download.bundleIdentifier = coreID
-                        
-                        var systemNames: [String] = []
-                        var systemIdentifiers: [String] = []
-                        
-                        for systemNode in systemNodes {
-                            if let systemName = systemNode.stringValue {
-                                systemNames.append(systemName)
-                            }
-                            if let systemIdentifier = systemNode.attribute(forName: "id")?.stringValue {
-                                systemIdentifiers.append(systemIdentifier)
-                            }
-                        }
-                        
-                        download.systemNames = systemNames
-                        download.systemIdentifiers = systemIdentifiers
-                        download.canBeInstalled = true
-                        
-                        // Bypass Sparkle Appcast parsing and inject the direct Libretro buildbot URL
-                        download.appcastItem = CoreAppcastItem(url: downloadURL, version: "Current", minOSVersion: "11.0")
-                        download.delegate = self
-                        
-                        DispatchQueue.main.async {
-                            if download == self.coreDownload {
-                                download.start()
-                            }
-                            
-                            self.coresDict[coreID] = download  // coreID already lowercased above
-                            self.updateCoreList()
-                        }
-                    }
-                }
-            }
-        }
-        
-        lastCoreListURLTask?.resume()
+        // Inject libretro buildbot cores for any system not already covered by an
+        // installed plugin.  This runs synchronously on the main queue before any
+        // network fetch so the "Missing Core" alert can show immediately.
+        OELibretroBuildbot.injectCoreDownloads(into: &coresDict, delegate: self)
+        updateCoreList()
+        handler?(nil)
     }
     
     func cancelCheckForNewCores() {
@@ -247,7 +113,7 @@ final class CoreUpdater: NSObject {
     // MARK: - Installing with OEAlert
     
     func installCore(for game: OEDBGame, withCompletionHandler handler: @escaping (_ plugin: OECorePlugin?, _ error: Error?) -> Void) {
-        
+
         let systemIdentifier = game.system?.systemIdentifier ?? ""
         var validPlugins = coreList.filter { $0.systemIdentifiers.contains(systemIdentifier) }
         
@@ -487,7 +353,12 @@ extension CoreUpdater: CoreDownloadDelegate {
     }
     
     func coreDownloadDidFinish(_ download: CoreDownload) {
-        updateCoreList()
+        // Manually update the dictionary for this core immediately to ensure
+        // the UI reflects the "Installed" state even if common plugin scanning is late.
+        let key = download.bundleIdentifier.lowercased()
+        coresDict[key] = download
+        
+        syncInstalledCores()
         
         download.removeObserver(self, forKeyPath: #keyPath(CoreDownload.progress), context: &CoreDownloadProgressContext)
         
