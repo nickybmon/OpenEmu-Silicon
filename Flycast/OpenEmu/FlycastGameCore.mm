@@ -50,22 +50,6 @@
 #include <OpenGL/gl3.h>
 #include <sys/stat.h>
 
-// Debug logging to /tmp/flycast_debug.log — NSLog from the helper process is invisible
-static FILE *_debugLog = nullptr;
-static void flylog(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
-static void flylog(const char *fmt, ...) {
-    if (!_debugLog) {
-        _debugLog = fopen("/tmp/flycast_debug.log", "w");
-        if (!_debugLog) return;
-        setbuf(_debugLog, NULL);
-    }
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(_debugLog, fmt, args);
-    va_end(args);
-    fprintf(_debugLog, "\n");
-}
-
 #define SAMPLERATE 44100
 #define SIZESOUNDBUFFER (44100 / 60 * 4)
 
@@ -140,12 +124,7 @@ __weak FlycastGameCore *_current;
     NSString *savesPath   = [self batterySavesDirectoryPath];
     NSString *biosPath    = [self biosDirectoryPath];
 
-    flylog("[Flycast] setupEmulation bios=%s", biosPath.fileSystemRepresentation);
     NSFileManager *fm = [NSFileManager defaultManager];
-    for (NSString *b in @[@"dc_boot.bin", @"dc_flash.bin"]) {
-        flylog("[Flycast] BIOS %s: %s", b.UTF8String,
-               [fm fileExistsAtPath:[biosPath stringByAppendingPathComponent:b]] ? "FOUND" : "MISSING");
-    }
     [fm createDirectoryAtPath:[supportPath stringByAppendingPathComponent:@"data"]
   withIntermediateDirectories:YES attributes:nil error:nil];
     [fm createDirectoryAtPath:savesPath
@@ -156,20 +135,15 @@ __weak FlycastGameCore *_current;
     add_system_data_dir(supportPath.fileSystemRepresentation);
     add_system_data_dir(biosPath.fileSystemRepresentation);
 
-    flylog("[Flycast] emu.init() start");
     config::RendererType = RenderType::OpenGL;
     config::AudioBackend.set("openemu");
-    // ARM64 JIT causes non-deterministic hangs on first launch (emu.render() never returns).
-    // Interpreter mode is reliable. Re-enable JIT once the render/stop race is fixed.
-    config::DynarecEnabled = false;
+    config::DynarecEnabled = false; // JIT crashes the OE helper process (EXC_BREAKPOINT); interpreter is reliable
+    config::UseReios.override(true); // HLE BIOS: skips animated swirl, boots instantly on first launch
 
-    if (!addrspace::reserve()) {
-        NSLog(@"[Flycast] Failed to reserve Dreamcast address space");
-    }
+    addrspace::reserve();
     os_InstallFaultHandler();
 
     emu.init();
-    flylog("[Flycast] emu.init() done");
 }
 
 - (void)startEmulation
@@ -219,30 +193,32 @@ __weak FlycastGameCore *_current;
             gui_init();
             theGLContext.init();
             emu.loadGame(_romPath.fileSystemRepresentation);
-            flylog("[Flycast] loadGame done");
-            // Use threaded rendering (default=true): SH4 runs on a background thread;
-            // rend_single_frame() on the OE game loop thread renders one queued frame per call.
-            // Non-threaded mode blocks the game loop indefinitely in getSh4Executor()->Run().
             rend_init_renderer();
             settings.display.width  = _videoWidth;
             settings.display.height = _videoHeight;
-            emu.start();
-            flylog("[Flycast] emu.start() done");
+            // gui_setState must be called before emu.start() so the render pipeline
+            // is in the Closed (game-running) state when the SH4 thread begins.
+            // Calling it after emu.start() races with the first frame and can cause
+            // rend_single_frame() to return false on every call during cold boot.
             gui_setState(GuiState::Closed);
+            emu.start();
             _isInitialized = YES;
         } catch (const std::exception &e) {
-            flylog("[Flycast] EXCEPTION loading game: %s", e.what());
             NSLog(@"[Flycast] Error loading game: %s", e.what());
             return;
         } catch (...) {
-            flylog("[Flycast] UNKNOWN EXCEPTION loading game");
             NSLog(@"[Flycast] Unknown error loading game");
             return;
         }
     }
 
-    emu.render();
-    [self.renderDelegate presentDoubleBufferedFBO];
+    try {
+        emu.render();
+    } catch (const std::exception &e) {
+        NSLog(@"[Flycast] emu.render() exception: %s", e.what());
+    } catch (...) {
+        NSLog(@"[Flycast] emu.render() unknown exception");
+    }
 }
 
 #pragma mark - Video
@@ -254,7 +230,7 @@ __weak FlycastGameCore *_current;
 
 - (BOOL)needsDoubleBufferedFBO
 {
-    return YES;
+    return NO;
 }
 
 - (OEIntSize)bufferSize
