@@ -39,8 +39,10 @@
 #import "DolphinGameCore.h"
 #include "DolHost.h"
 #include "AudioCommon/SoundStream.h"
+#include "Core/State.h"
 #include "Core/System.h"
 #include "OpenEmuAudioStream.h"
+#include "UICommon/UICommon.h"
 #include <stdatomic.h>
 
 #import <AppKit/AppKit.h>
@@ -299,25 +301,35 @@ DolphinGameCore *_current = 0;
 # pragma mark - Save States
 - (void)saveStateToFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
 {
-    // we need to make sure we are initialized before attempting to save a state
-    while (! _isInitialized)
-        usleep (1000);
+    // Wait for full initialization before saving.
+    while (!_isInitialized)
+        usleep(1000);
 
-    block(dol_host->SaveState([fileName UTF8String]),nil);
+    // State::SaveAs (called inside DolHost::SaveState) dispatches the actual file
+    // write to a background compress-and-dump thread and returns immediately.
+    // UICommon::FlushUnsavedData() acquires the exclusive save-in-progress lock,
+    // blocking until that thread finishes writing the file to disk.
+    dol_host->SaveState([fileName UTF8String]);
+    UICommon::FlushUnsavedData();
 
+    block(YES, nil);
 }
 
 - (void)loadStateFromFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
 {
     if (!_isInitialized)
     {
-        //Start a separate thread to load
+        // Core not yet running — defer until initialization completes.
         autoLoadStatefileName = fileName;
-        
         [NSThread detachNewThreadSelector:@selector(autoloadWaitThread) toTarget:self withObject:nil];
-        block(true, nil);
-    } else {
-        block(dol_host->LoadState([fileName UTF8String]),nil);
+        block(YES, nil);
+    }
+    else
+    {
+        // State::LoadAs runs synchronously on the CPU thread via RunOnCPUThread,
+        // so by the time LoadState returns the state has been applied.
+        dol_host->LoadState([fileName UTF8String]);
+        block(YES, nil);
     }
 }
 
@@ -325,10 +337,9 @@ DolphinGameCore *_current = 0;
 {
     @autoreleasepool
     {
-        //Wait here until we get the signal for full initialization
         while (!_isInitialized)
-            usleep (100);
-        
+            usleep(100);
+
         dol_host->LoadState([autoLoadStatefileName UTF8String]);
     }
 }
