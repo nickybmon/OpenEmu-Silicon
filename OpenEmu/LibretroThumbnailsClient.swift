@@ -128,6 +128,9 @@ final class LibretroThumbnailsClient {
         task.resume()
         semaphore.wait()
 
+        if found {
+            os_log(.debug, log: .default, "LibretroThumbnails: found art for '%{public}@' (%{public}@)", gameName, systemIdentifier)
+        }
         return found ? urlString : nil
     }
 
