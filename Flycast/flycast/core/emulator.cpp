@@ -1077,7 +1077,18 @@ bool Emulator::render()
 		return false;
 	if (state != Running)
 		return false;
-	return rend_single_frame(true, 14); // 14ms: return quickly if no frame ready so OE game loop stays responsive
+	// The SH4 interpreter runs at ~10-20% of real speed on ARM64. GD-ROM loading
+	// can take arbitrarily long under the interpreter, so we wait indefinitely
+	// (-1) rather than using a fixed timeout. rend_cancel_emu_wait() unblocks
+	// the render thread on quit via cancelEnqueue(), preventing a deadlock.
+	// With JIT/dynarec the emulator runs at full speed so the default per-field
+	// timeout (0 → 20ms NTSC / 23ms PAL) is used instead.
+#if FEAT_SHREC != DYNAREC_NONE
+	const int frameTimeout = config::DynarecEnabled ? 0 : -1;
+#else
+	const int frameTimeout = -1;
+#endif
+	return rend_single_frame(true, frameTimeout);
 }
 
 void Emulator::vblank()

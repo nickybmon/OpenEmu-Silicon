@@ -111,14 +111,15 @@ public:
 	void cancelEnqueue()
 	{
 		const lock_guard lock(mutex);
-		for (auto it = queue.begin(); it != queue.end(); )
-		{
-			if (it->type != Render)
-				it = queue.erase(it);
-			else
-				++it;
-		}
+		// Clear all pending messages, including any Render messages. This is
+		// necessary to unblock the SH4 thread if it is waiting in enqueue()
+		// for a duplicate Render to be consumed. Without clearing Render
+		// messages the SH4 thread loops forever: cancelEnqueue sets
+		// dequeueEvent, the SH4 wakes up, sees the Render still in the queue,
+		// and waits again — deadlocking emu.stop()'s checkStatus(true).
+		queue.clear();
 		dequeueEvent.Set();
+		enqueueEvent.Set(); // unblock any dequeue(-1) waiting on the render thread
 	}
 private:
 	Message dequeue(int timeoutMs = -1)
@@ -266,7 +267,10 @@ bool rend_single_frame(const bool& enabled, int timeoutMs)
 	FC_PROFILE_SCOPE;
 
 	const int defaultTimeout = SPG_CONTROL.isPAL() ? 23 : 20;
-	const int timeout = (timeoutMs > 0) ? timeoutMs : defaultTimeout;
+	// timeoutMs == 0: use default per-field timeout (20ms NTSC / 23ms PAL)
+	// timeoutMs  < 0: unbounded wait (pass -1 to dequeue)
+	// timeoutMs  > 0: caller-specified timeout in ms
+	const int timeout = (timeoutMs == 0) ? defaultTimeout : timeoutMs;
 	presented = false;
 	while (enabled && !presented)
 		if (!pvrQueue.waitAndExecute(timeout))
