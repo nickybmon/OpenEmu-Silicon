@@ -305,14 +305,23 @@ DolphinGameCore *_current = 0;
     while (!_isInitialized)
         usleep(1000);
 
-    // State::SaveAs (called inside DolHost::SaveState) dispatches the actual file
-    // write to a background compress-and-dump thread and returns immediately.
-    // UICommon::FlushUnsavedData() acquires the exclusive save-in-progress lock,
-    // blocking until that thread finishes writing the file to disk.
+    // State::SaveAs dispatches the file write to a background thread and returns immediately.
+    // UICommon::FlushUnsavedData() acquires the exclusive save-in-progress lock, which blocks
+    // until the background thread releases its shared lock — i.e. until the file is fully written.
+    // If SaveToBuffer fails internally (DoState error), Dolphin never emplaces the work item and
+    // the file is never written. Check existence so OE gets an accurate success/failure signal.
     dol_host->SaveState([fileName UTF8String]);
     UICommon::FlushUnsavedData();
 
-    block(YES, nil);
+    BOOL success = [[NSFileManager defaultManager] fileExistsAtPath:fileName];
+    if (success) {
+        block(YES, nil);
+    } else {
+        NSError *err = [NSError errorWithDomain:OEGameCoreErrorDomain
+                                          code:OEGameCoreCouldNotSaveStateError
+                                      userInfo:@{NSLocalizedDescriptionKey: @"Dolphin failed to write the save state file. Check that the game is fully loaded before saving."}];
+        block(NO, err);
+    }
 }
 
 - (void)loadStateFromFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
