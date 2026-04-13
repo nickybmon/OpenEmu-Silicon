@@ -27,7 +27,20 @@
 #import "OEFDSSystemResponder.h"
 #import "OEFDSSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OEFDSSystemResponder
+static const uint8_t kFDSLibretroMap[] = { 4, 5, 6, 7, 8, 0, 3, 2, 0xFF };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,28 +50,26 @@
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    OEFDSButton button = (OEFDSButton)aKey.key;
-
-    switch(button)
-    {
-        case OEFDSButtonChangeSide : [self.client didPushFDSChangeSideButton]; break;
-        default :
-            [self.client didPushNESButton:button forPlayer:aKey.player];
-            break;
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kFDSLibretroMap)) ? kFDSLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
     }
+    [(id<OEFDSSystemResponderClient>)client didPushNESButton:(OEFDSButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    OEFDSButton button = (OEFDSButton)aKey.key;
-
-    switch(button)
-    {
-        case OEFDSButtonChangeSide : [self.client didReleaseFDSChangeSideButton]; break;
-        default :
-            [self.client didReleaseNESButton:button forPlayer:aKey.player];
-            break;
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kFDSLibretroMap)) ? kFDSLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
     }
+    [(id<OEFDSSystemResponderClient>)client didReleaseNESButton:(OEFDSButton)k forPlayer:aKey.player];
 }
 
 @end

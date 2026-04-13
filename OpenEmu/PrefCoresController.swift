@@ -23,6 +23,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import Cocoa
+import os.log
 
 private extension NSUserInterfaceItemIdentifier {
     static let coreColumn    = NSUserInterfaceItemIdentifier("coreColumn")
@@ -48,8 +49,11 @@ final class PrefCoresController: NSViewController {
         coreListObservation = CoreUpdater.shared.observe(\CoreUpdater.coreList) { [weak self] _, _ in
             self?.coresTableView.reloadData()
         }
-        CoreUpdater.shared.checkForNewCores()   // TODO: check error from completion handler
-        CoreUpdater.shared.checkForUpdates()
+        CoreUpdater.shared.checkForNewCores { error in
+            if let error = error {
+                os_log(.error, "Failed to check for new cores: %{public}@", error.localizedDescription)
+            }
+        }
 
         for column in coresTableView.tableColumns {
             switch column.identifier {
@@ -59,6 +63,8 @@ final class PrefCoresController: NSViewController {
                 column.headerCell.title = NSLocalizedString("System", comment: "Cores preferences, column header")
             case .versionColumn:
                 column.headerCell.title = NSLocalizedString("Version", comment: "Cores preferences, column header")
+                column.width = 120
+                column.minWidth = 100
             default:
                 break
             }
@@ -194,10 +200,15 @@ extension PrefCoresController: NSTableViewDelegate {
             
         } else if ident == .versionColumn {
             
-            let view = tableView.makeView(withIdentifier: .systemListCell, owner: self) as! NSTableCellView
+            let view = tableView.makeView(withIdentifier: .versionCell, owner: self) as! NSTableCellView
             let currentVer = plugin.version
             let latestVer = plugin.appcastItem?.version ?? currentVer
-            view.textField?.stringValue = "Ver: \(currentVer)\nLat: \(latestVer)"
+            
+            if currentVer.isEmpty || currentVer == "1.0-Libretro" || currentVer == "Nightly" {
+                view.textField?.stringValue = "Lat: \(latestVer)"
+            } else {
+                view.textField?.stringValue = "Ver: \(currentVer)\nLat: \(latestVer)"
+            }
             view.textField?.textColor = .secondaryLabelColor
             return view
             

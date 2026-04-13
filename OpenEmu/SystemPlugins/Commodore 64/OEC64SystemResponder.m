@@ -67,27 +67,37 @@
 
 - (void)mouseMovedAtPoint:(OEIntPoint)aPoint
 {
-    [self.client mouseMovedAtPoint:aPoint];
+    if ([self.client respondsToSelector:@selector(mouseMovedAtPoint:)]) {
+        [self.client mouseMovedAtPoint:aPoint];
+    }
 }
 
 - (void)mouseDownAtPoint:(OEIntPoint)aPoint
 {
-    [self.client leftMouseDownAtPoint:aPoint];
+    if ([self.client respondsToSelector:@selector(leftMouseDownAtPoint:)]) {
+        [self.client leftMouseDownAtPoint:aPoint];
+    }
 }
 
 - (void)mouseUpAtPoint
 {
-    [self.client leftMouseUp];
+    if ([self.client respondsToSelector:@selector(leftMouseUp)]) {
+        [self.client leftMouseUp];
+    }
 }
 
 - (void)rightMouseDownAtPoint:(OEIntPoint)aPoint
 {
-    [self.client rightMouseDownAtPoint:aPoint];
+    if ([self.client respondsToSelector:@selector(rightMouseDownAtPoint:)]) {
+        [self.client rightMouseDownAtPoint:aPoint];
+    }
 }
 
 - (void)rightMouseUpAtPoint
 {
-    [self.client rightMouseUp];
+    if ([self.client respondsToSelector:@selector(rightMouseUp)]) {
+        [self.client rightMouseUp];
+    }
 }
 
 @end

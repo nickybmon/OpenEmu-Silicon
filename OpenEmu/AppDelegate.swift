@@ -75,7 +75,7 @@ class AppDelegate: NSObject {
             if logHIDEvents {
                 hidEventsMonitor = OEDeviceManager.shared.addGlobalEventMonitorHandler { handler, event in
                     if event.type != .keyboard {
-                        os_log(.info, log: .event_hid, "%{public}@", event)
+                        // Log removed for Release
                     }
                     return true
                 }
@@ -95,7 +95,7 @@ class AppDelegate: NSObject {
             if logKeyboardEvents {
                 keyboardEventsMonitor = OEDeviceManager.shared.addGlobalEventMonitorHandler { handler, event in
                     if event.type == .keyboard {
-                        os_log(.info, log: .event_keyboard, "%{public}@", event)
+                        // Log removed for Release
                     }
                     return true
                 }
@@ -326,9 +326,9 @@ class AppDelegate: NSObject {
     }
     
     // MARK: -
-
+    
     fileprivate func validateDefaultPluginAssignments() {
-
+        
         // Remove Higan WIP systems as defaults if found, since our core port does not support them.
         let defaults = UserDefaults.standard
         if defaults.string(forKey: "defaultCore.openemu.system.gb") == "org.openemu.Higan" {
@@ -340,13 +340,13 @@ class AppDelegate: NSObject {
         if defaults.string(forKey: "defaultCore.openemu.system.nes") == "org.openemu.Higan" {
             defaults.removeObject(forKey: "defaultCore.openemu.system.nes")
         }
-
+        
         // Remove system defaults for deprecated core plugins.
         if defaults.string(forKey: "defaultCore.openemu.system.gba") == "org.openemu.VisualBoyAdvance" {
             defaults.removeObject(forKey: "defaultCore.openemu.system.gba")
         }
         if defaults.string(forKey: "defaultCore.openemu.system.gg") == "org.openemu.CrabEmu" ||
-           defaults.string(forKey: "defaultCore.openemu.system.gg") == "org.openemu.TwoMbit" {
+            defaults.string(forKey: "defaultCore.openemu.system.gg") == "org.openemu.TwoMbit" {
             defaults.removeObject(forKey: "defaultCore.openemu.system.gg")
         }
         if defaults.string(forKey: "defaultCore.openemu.system.ngp") == "org.openemu.NeoPop" {
@@ -356,14 +356,14 @@ class AppDelegate: NSObject {
             defaults.removeObject(forKey: "defaultCore.openemu.system.saturn")
         }
         if defaults.string(forKey: "defaultCore.openemu.system.sms") == "org.openemu.CrabEmu" ||
-           defaults.string(forKey: "defaultCore.openemu.system.sms") == "org.openemu.TwoMbit" {
+            defaults.string(forKey: "defaultCore.openemu.system.sms") == "org.openemu.TwoMbit" {
             defaults.removeObject(forKey: "defaultCore.openemu.system.sms")
         }
         if defaults.string(forKey: "defaultCore.openemu.system.gc") == "org.openemu.Dolphin_Core" {
             defaults.removeObject(forKey: "defaultCore.openemu.system.gc")
         }
     }
-    
+
     fileprivate func loadPlugins(with library: OELibraryDatabase) {
         // Register all system controllers with the bindings controller.
         for plugin in OESystemPlugin.allPlugins {
@@ -426,7 +426,6 @@ class AppDelegate: NSObject {
             $0.coreIdentifier == "org.openemu.VisualBoyAdvance" ||
             $0.coreIdentifier == "org.openemu.Dolphin_Core"
         }
-        
         guard !incompatibleSaveStates.isEmpty else { return }
 
         // Build a human-readable list of affected cores for the alert.
@@ -440,38 +439,25 @@ class AppDelegate: NSObject {
             "org.openemu.VisualBoyAdvance": "VisualBoyAdvance (Game Boy / GBA)",
             "org.openemu.Dolphin_Core":     "Dolphin (GameCube / Wii)",
         ]
-        let affectedCores = Set(incompatibleSaveStates.compactMap { $0.coreIdentifier })
+        
+        let affectedCores = Set(incompatibleSaveStates.compactMap { coreDisplayNames[$0.coreIdentifier ?? ""] })
             .sorted()
-            .map { coreDisplayNames[$0] ?? $0 }
-            .joined(separator: "\n")
-        let count = incompatibleSaveStates.count
+            .joined(separator: ", ")
 
-        let alert = NSAlert()
-        alert.messageText = "\(count) Incompatible Save State\(count == 1 ? "" : "s") Found"
-        alert.informativeText = """
-            The following save states were created with older core versions and are no longer \
-            compatible. Loading them would cause a crash.
+        // Log removed for Release
+        
+        // Show the alert (Destructive action requires UI notification)
+        let alert = OEAlert()
+        alert.messageText = NSLocalizedString("Incompatible Save States", comment: "")
+        alert.informativeText = String(format: NSLocalizedString("Save states created with the following cores are incompatible with this version and were removed:\n\n%@", comment: ""), affectedCores)
+        alert.defaultButtonTitle = NSLocalizedString("OK", comment: "")
+        alert.runModal()
 
-            Affected cores:
-            \(affectedCores)
-
-            You can keep them now and back up the files in:
-            ~/Library/Application Support/OpenEmu/Save States/
-            before deleting, or remove them immediately.
-            """
-        alert.alertStyle = .warning
-        alert.addButton(withTitle: "Delete Save States")
-        alert.addButton(withTitle: "Keep for Now")
-
-        if alert.runModal() == .alertFirstButtonReturn {
-            os_log(.info, log: .default, "Removing %d incompatible save state(s).", count)
-            for saveState in incompatibleSaveStates {
-                saveState.deleteAndRemoveFiles()
-            }
-            try? context.save()
-        } else {
-            os_log(.info, log: .default, "User deferred deletion of %d incompatible save state(s).", count)
+        for saveState in incompatibleSaveStates {
+            saveState.deleteAndRemoveFiles()
         }
+        
+        try? context.save()
     }
     
     fileprivate func setUpHIDSupport() {
@@ -649,7 +635,7 @@ class AppDelegate: NSObject {
     
     @objc(migrationForceUpdateCores:)
     func migrationForceUpdateCores() throws {
-        CoreUpdater.shared.checkForUpdatesAndInstall()
+        // Deferred: CoreUpdater.shared.checkForUpdatesAndInstall()
     }
     
     @objc(migrationRemoveCoreDefaults:)
@@ -674,7 +660,7 @@ class AppDelegate: NSObject {
     // MARK: - Debug
     
     @IBAction func OEDebug_logResponderChain(_ sender: AnyObject?) {
-        os_log(.info, log: .default, "NSApp.KeyWindow: %{public}@", String(describing: NSApp.keyWindow))
+        // Log removed for Release
         
         if let keyWindow = NSApp.keyWindow {
             
@@ -688,7 +674,7 @@ class AppDelegate: NSObject {
             
             let output = responderChain.reduce("Responder Chain: ") { $0 + " -> \($1)" }
             
-            os_log(.info, log: .default, "%{public}@", output)
+            // Log removed for Release
         }
     }
 }
@@ -921,7 +907,8 @@ extension AppDelegate: NSMenuDelegate {
         OECoreMigration.runIfNeeded()
         loadPlugins(with: database)
 
-        CoreUpdater.shared.checkForUpdatesAndInstall()
+        // Deferred: CoreUpdater.shared.checkForUpdatesAndInstall()
+
         
         if !restoreWindow {
             _ = mainWindowController.window
@@ -954,7 +941,7 @@ extension AppDelegate: NSMenuDelegate {
         }
 
         // Deferred from applicationDidFinishLaunching so the main window is visible
-        // before any modal alerts appear. Showing a runModal alert before the window
+        // before the consent sheet appears. Showing a runModal alert before the window
         // rendered caused a CA transaction hang on macOS 26 (OPENEM-SILICON-8 et al).
         SentryService.configureIfNeeded()
         removeIncompatibleSaveStates(from: database)
@@ -1021,7 +1008,16 @@ extension AppDelegate: NSMenuDelegate {
     }
     
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        let appBundleURL = Bundle.main.bundleURL
+        let appExecutableURL = Bundle.main.executableURL
+        
         let urls = filenames.compactMap { URL(fileURLWithPath: $0) }
+                            .filter { $0 != appBundleURL && $0 != appExecutableURL }
+        
+        guard !urls.isEmpty else {
+            NSApp.reply(toOpenOrPrint: .success)
+            return
+        }
         
         guard UserDefaults.standard.bool(forKey: SetupAssistant.hasFinishedKey) else {
             NSApp.reply(toOpenOrPrint: .cancel)

@@ -336,6 +336,7 @@
 		837964F91A614C0A00A8DE5C /* OpenEmuSystem.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C6D120C417112E1300E868A8 /* OpenEmuSystem.framework */; };
 		837964FA1A614C6A00A8DE5C /* Supervision.oesystemplugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = 837964E11A6149C000A8DE5C /* Supervision.oesystemplugin */; };
 		839310BC147802380020058E /* CoreDownload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839310BB147802380020058E /* CoreDownload.swift */; };
+		14FEB8870D5948A1BCD26EEF /* OELibretroBuildbot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C735BCE1E9487EA5A79659 /* OELibretroBuildbot.swift */; };
 		83955CB5165D939100572B34 /* BlankSlateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83955CB4165D939100572B34 /* BlankSlateView.swift */; };
 		8397082F163C405000E04871 /* 0.2 to 0.3.xcmappingmodel in Sources */ = {isa = PBXBuildFile; fileRef = 8397082E163C405000E04871 /* 0.2 to 0.3.xcmappingmodel */; };
 		83AAC32914581699005ADD16 /* SetupAssistantBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83AAC32814581699005ADD16 /* SetupAssistantBackgroundView.swift */; };
@@ -1554,6 +1555,7 @@
 		83753F1614F537C400D708A7 /* PrefDebugController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PrefDebugController.swift; sourceTree = "<group>"; };
 		83753F1914F5383F00D708A7 /* PrefDebugController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PrefDebugController.xib; sourceTree = "<group>"; };
 		8375E14E1477FC0D0018DA1F /* CoreUpdater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreUpdater.swift; sourceTree = "<group>"; };
+		62C735BCE1E9487EA5A79659 /* OELibretroBuildbot.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OELibretroBuildbot.swift; sourceTree = "<group>"; };
 		837820B71907FADB0043593F /* IKRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IKRenderer.h; sourceTree = "<group>"; };
 		837820B81907FB2D0043593F /* IKImageWrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IKImageWrapper.h; sourceTree = "<group>"; };
 		837820BA1907FB6E0043593F /* IKImageBrowserView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IKImageBrowserView.h; sourceTree = "<group>"; };
@@ -3232,6 +3234,7 @@
 				8375E14E1477FC0D0018DA1F /* CoreUpdater.swift */,
 				6FAD47F297164AD6B87C99DF /* OECoreMigration.swift */,
 				839310BB147802380020058E /* CoreDownload.swift */,
+				62C735BCE1E9487EA5A79659 /* OELibretroBuildbot.swift */,
 			);
 			name = Downloader;
 			sourceTree = "<group>";
@@ -6482,6 +6485,7 @@
 				8FC080272825914E00F18E15 /* OELibraryDatabase.swift in Sources */,
 				8FDCCADA27063FDE00CBF2E3 /* GameCollectionViewItemIndicationLayer.swift in Sources */,
 				839310BC147802380020058E /* CoreDownload.swift in Sources */,
+				14FEB8870D5948A1BCD26EEF /* OELibretroBuildbot.swift in Sources */,
 				5A3DB1B11D8E6806009445EC /* AppDelegate.swift in Sources */,
 				83CA87B41961CDD400D86D55 /* 1.2 to 1.3.xcmappingmodel in Sources */,
 				8F812C4426D5454B00E89C42 /* OEDBScreenshot.swift in Sources */,

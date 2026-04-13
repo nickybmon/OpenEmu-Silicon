@@ -25,6 +25,7 @@
 import Foundation
 import OpenEmuBase
 
+
 public class OECorePlugin: OEPlugin {
     
     override public class var pluginExtension: String {
@@ -36,8 +37,13 @@ public class OECorePlugin: OEPlugin {
     }
     
     @objc public class var allPlugins: [OECorePlugin] {
+        // Trigger dynamic core sync and merge results
+        let dynamicCores = OECoreSyncManager.shared.syncCores()
+        
         // swiftlint:disable:next force_cast
-        return plugins() as! [OECorePlugin]
+        let standardPlugins = plugins() as! [OECorePlugin]
+        
+        return standardPlugins + dynamicCores
     }
     
     required init(bundleAtURL bundleURL: URL, name: String?) throws {
@@ -67,9 +73,14 @@ public class OECorePlugin: OEPlugin {
     
     private var _controller: Controller?
     public var controller: OEGameCoreController! {
-        if _controller == nil,
-           let principalClass = bundle.principalClass {
-            _controller = newPluginController(with: principalClass)
+        if _controller == nil {
+            if let principalClass = bundle.principalClass {
+                _controller = newPluginController(with: principalClass)
+            } else {
+                // If the bundle has no executable (e.g. dummy dylib wrappers), instantiate the base Controller.
+                // The base Controller will read OEGameCoreClass natively from the plist we generated.
+                _controller = Controller(bundle: bundle)
+            }
         }
         return _controller
     }
@@ -294,5 +305,186 @@ public extension OECorePlugin {
             architectures.append(.arm64)
         }
         return architectures
+    }
+}
+// Copyright (c) 2026, OpenEmu Team
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//     * Redistributions of source code must retain the above copyright
+//       notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//     * Neither the name of the OpenEmu Team nor the
+//       names of its contributors may be used to endorse or promote products
+//       derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY OpenEmu Team ''AS IS'' AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL OpenEmu Team BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import Foundation
+
+/// Scans the application-support Cores folder for libretro `.dylib` files that were
+/// downloaded by the `CoreDownload` machinery but whose companion `.oecoreplugin`
+/// bundle is missing (e.g. after a crash mid-install, or a manually placed dylib).
+///
+/// For dylibs that already have a valid `.oecoreplugin` next to them the standard
+/// `OEPlugin.plugins()` scanner handles registration, so `syncCores()` purposely
+/// skips those to avoid duplicates.
+///
+/// System identifiers are resolved in order:
+///  1. From the dylib's companion `.oecoreplugin/Info.plist` if present (written by
+///     `CoreDownload` with the correct `OEGameCoreSystemIdentifiers` key).
+///  2. From the static dylib-filename → system-ID table embedded below, which mirrors
+///     `OELibretroBuildbot.allCores` (kept as a plain dictionary here so this file
+///     has no compile-time dependency on the OpenEmu app target).
+@objc(OECoreSyncManager)
+public class OECoreSyncManager: NSObject {
+
+    @objc public static let shared = OECoreSyncManager()
+
+    /// Application-support Cores folder — same location CoreDownload uses.
+    private var coresFolder: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("OpenEmu/Cores", isDirectory: true)
+    }
+
+    // Static fallback: dylib filename -> [OpenEmu system identifiers, BIOS requirements]
+    // Synchronized with OELibretroBuildbot.allCores
+    private static let metadataByDylib: [String: (sysIDs: [String], bios: [[String: Any]]?)] = [
+        "melonds_libretro.dylib":            (["openemu.system.nds"], [
+            ["Name": "bios7.bin", "Description": "ARM7 BIOS", "MD5": "df692a80a5b1bcbae72ba034cf3af048", "Size": 16384],
+            ["Name": "bios9.bin", "Description": "ARM9 BIOS", "MD5": "a39217daabfcf4a30ae9e564f0b240f8", "Size": 4096],
+            ["Name": "firmware.bin", "Description": "Firmware", "MD5": "6c361df89e13d46a894a4b4ed6dbd380", "Size": 262144]
+        ]),
+    ]
+
+    private var cachedPlugins: [OECorePlugin]?
+
+    /// Invalidate the plugin cache (called after a new core is installed).
+    @objc public func invalidateCache() {
+        cachedPlugins = nil
+    }
+
+    /// Returns `OECorePlugin` instances for every libretro dylib that does NOT yet
+    /// have a companion `.oecoreplugin` bundle handled by `OEPlugin.plugins()`.
+    @objc public func syncCores() -> [OECorePlugin] {
+        var result: [OECorePlugin] = []
+        let fm = FileManager.default
+
+        guard let contents = try? fm.contentsOfDirectory(
+            at: coresFolder, includingPropertiesForKeys: nil
+        ) else {
+            cachedPlugins = result
+            return result
+        }
+
+        for dylibURL in contents where dylibURL.pathExtension == "dylib" {
+            let stem = dylibURL.deletingPathExtension().lastPathComponent
+            
+            // CRITICAL: Avoid duplicate registration.
+            // If this dylib is already inside a standard .oecoreplugin bundle, ignore it.
+            let standardStem = stem.replacingOccurrences(of: "_libretro", with: "")
+            let standardBundleID = "org.openemu.libretro.\(standardStem)"
+            let standardBundleURL = coresFolder.appendingPathComponent("\(standardBundleID).oecoreplugin")
+            let fauxURL = coresFolder.appendingPathComponent("\(stem).oecoreplugin")
+            
+            if fm.fileExists(atPath: standardBundleURL.path) {
+                // remediate clashing faux bundle
+                if fm.fileExists(atPath: fauxURL.path) {
+                    try? fm.removeItem(at: fauxURL)
+                }
+                continue
+            }
+
+            // Resolve system IDs and BIOS requirements: check companion plist first,
+            // then fall back to the local metadata table.
+            let (sysIDs, bios): ([String], [[String: Any]]?) = {
+                if let plist = NSDictionary(contentsOf: fauxURL.appendingPathComponent("Info.plist")),
+                   let ids = plist["OESystemIdentifiers"] as? [String], !ids.isEmpty {
+                    
+                    // Correctly extract BIOS requirements from the nested options dictionary
+                    var bio: [[String: Any]]? = nil
+                    if let options = plist["OEGameCoreOptions"] as? [String: Any] {
+                        for (_, value) in options {
+                            if let dict = value as? [String: Any],
+                               let files = dict["OERequiredFiles"] as? [[String: Any]] {
+                                bio = files
+                                break
+                            }
+                        }
+                    }
+                    return (ids, bio)
+                }
+                
+                let metadata = Self.metadataByDylib[dylibURL.lastPathComponent]
+                return (metadata?.sysIDs ?? [], metadata?.bios)
+            }()
+
+            // Pulse metadata into Info.plist and register the plugin
+            if !sysIDs.isEmpty {
+                if let plugin = makePlugin(dylib: dylibURL, stem: stem, sysIDs: sysIDs, requiredFiles: bios) {
+                    result.append(plugin)
+                }
+            }
+        }
+
+        cachedPlugins = result
+        return result
+    }
+
+
+    // MARK: - Private helpers
+
+    private func makePlugin(dylib dylibURL: URL, stem: String, sysIDs: [String], requiredFiles: [[String: Any]]?) -> OECorePlugin? {
+        let fauxURL = coresFolder.appendingPathComponent("\(stem).oecoreplugin")
+        let fm = FileManager.default
+
+        do {
+            try fm.createDirectory(at: fauxURL, withIntermediateDirectories: true)
+        } catch {
+            return nil
+        }
+
+        let coreVersion = OELibretroCoreTranslator.libraryVersionForCore(at: dylibURL) ?? "1.0-Libretro"
+
+        var plist: [String: Any] = [
+            "CFBundleName":               stem,
+            "CFBundleIdentifier":         "org.openemu.libretro.\(stem)",
+            "CFBundleVersion":            coreVersion,
+            "CFBundleShortVersionString": coreVersion,
+            "OEGameCoreClass":            "OELibretroCoreTranslator",
+            "OEGameCorePlayerCount":      4,
+            "OELibretroCorePath":         dylibURL.path,
+            "OESystemIdentifiers":        sysIDs,
+        ]
+        
+        // Inject BIOS requirements if we have them
+        if let files = requiredFiles {
+            var options: [String: Any] = [:]
+            for sysID in sysIDs {
+                options[sysID] = [
+                    "OEGameCoreRequiresFiles": true,
+                    "OERequiredFiles": files
+                ]
+            }
+            plist["OEGameCoreOptions"] = options
+        }
+
+        (plist as NSDictionary).write(to: fauxURL.appendingPathComponent("Info.plist"), atomically: true)
+
+        if let plugin = OECorePlugin.corePlugin(bundleAtURL: fauxURL) {
+            return plugin
+        }
+        return nil
     }
 }

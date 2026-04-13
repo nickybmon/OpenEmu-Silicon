@@ -27,7 +27,17 @@
 #import "OEWiiSystemResponder.h"
 #import "OEWiiSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
 @implementation OEWiiSystemResponder
+// Generic mapping for Wii -> Libretro (assuming classic controller or similar)
+static const uint8_t kWiiLibretroMap[] = { 4, 5, 6, 7, 8, 0, 10, 12, 13, 11, 9, 1, 3, 2 };
+
 @dynamic client;
 
 + (Protocol *)gameSystemResponderClientProtocol;
@@ -37,43 +47,53 @@
 
 - (void)changeAnalogEmulatorKey:(OESystemKey *)aKey value:(CGFloat)value
 {
-    [[self client] didMoveWiiJoystickDirection:(OEWiiButton)[aKey key] withValue:value forPlayer:aKey.player];
+    id client = (id)self.client;
+    if ([client respondsToSelector:@selector(receiveLibretroAnalogIndex:axis:value:forPort:)]) {
+        int16_t val = (int16_t)round(value * 32767.0);
+        switch (aKey.key) {
+            case OEWiiNunchukAnalogUp:    [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:-val forPort:aKey.player]; break;
+            case OEWiiNunchukAnalogDown:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:val  forPort:aKey.player]; break;
+            case OEWiiNunchukAnalogLeft:  [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:-val forPort:aKey.player]; break;
+            case OEWiiNunchukAnalogRight: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:val  forPort:aKey.player]; break;
+            case OEWiiClassicAnalogLUp:   [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:-val forPort:aKey.player]; break;
+            case OEWiiClassicAnalogLDown: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:1 value:val  forPort:aKey.player]; break;
+            case OEWiiClassicAnalogLLeft: [(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:-val forPort:aKey.player]; break;
+            case OEWiiClassicAnalogLRight:[(id<OELibretroInputReceiver>)client receiveLibretroAnalogIndex:0 axis:0 value:val  forPort:aKey.player]; break;
+        }
+        return;
+    }
+    [(id<OEWiiSystemResponderClient>)client didMoveWiiJoystickDirection:(OEWiiButton)aKey.key withValue:value forPlayer:aKey.player];
 }
-
-//- (void)changeAccelerometerEmulatorValue:(OESystemKey *)aKey valueX:(CGFloat)valueX valueY:(CGFloat)valueY valueZ:(CGFloat)valueZ
-//{
-//
-//    [[self client] didMoveWiiAccelerometer:(OEWiiAccelerometer)[aKey key] withValue:valueX withValue:valueY withValue:valueZ forPlayer:aKey.player];
-//}
-//
-//- (void) changeWiimoteExtensionValue:(OESystemKey *)aKey extensionType:(NSInteger)extensionType
-//{
-//
-//    [[self client] didChangeWiiExtension:(OEWiimoteExtension)extensionType forPlayer:aKey.player];
-//}
-
-//- (void)changeIREmulatorValue:(OESystemKey *)aKey IRinfo:(OEwiimoteIRinfo)IRinfo
-//{
-//    [[self client] didMoveWiiIR:(OEWiiButton)aKey IRinfo:IRinfo forPlayer:aKey.player];
-//}
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [[self client] didPushWiiButton:(OEWiiButton)[aKey key] forPlayer:[aKey player]];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kWiiLibretroMap)) ? kWiiLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEWiiSystemResponderClient>)client didPushWiiButton:(OEWiiButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [[self client] didReleaseWiiButton:(OEWiiButton)[aKey key] forPlayer:[aKey player]];
-}
-
-- (void)mouseDownAtPoint:(OEIntPoint)aPoint
-{
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kWiiLibretroMap)) ? kWiiLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEWiiSystemResponderClient>)client didReleaseWiiButton:(OEWiiButton)k forPlayer:aKey.player];
 }
 
 - (void)mouseMovedAtPoint:(OEIntPoint)aPoint
 {
-    [[self client] IRMovedAtPoint:aPoint.x withValue:aPoint.y];
+    if ([self.client respondsToSelector:@selector(IRMovedAtPoint:withValue:)]) {
+        [(id<OEWiiSystemResponderClient>)self.client IRMovedAtPoint:aPoint.x withValue:aPoint.y];
+    }
 }
 
 @end

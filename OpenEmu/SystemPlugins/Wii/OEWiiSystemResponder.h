@@ -1,3 +1,4 @@
+#import <OpenEmuSystem/OpenEmuSystem.h>
 /*
  Copyright (c) 2013, OpenEmu Team
  
@@ -26,6 +27,7 @@
 
 #import <OpenEmuSystem/OpenEmuSystem.h>
 #import "OEWiiSystemResponderClient.h"
+
 
 OE_EXPORTED_CLASS
 @interface OEWiiSystemResponder : OESystemResponder

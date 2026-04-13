@@ -24,6 +24,7 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import <TargetConditionals.h>
 #import <Foundation/Foundation.h>
 #if TARGET_OS_OSX
 #import <Cocoa/Cocoa.h>

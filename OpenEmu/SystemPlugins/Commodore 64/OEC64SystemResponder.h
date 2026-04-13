@@ -1,3 +1,4 @@
+#import <OpenEmuSystem/OpenEmuSystem.h>
 /*
  Copyright (c) 2015, OpenEmu Team
 
@@ -26,6 +27,7 @@
 
 #import <OpenEmuSystem/OpenEmuSystem.h>
 #import "OEC64SystemResponderClient.h"
+
 
 OE_EXPORTED_CLASS
 @interface OEC64SystemResponder : OESystemResponder

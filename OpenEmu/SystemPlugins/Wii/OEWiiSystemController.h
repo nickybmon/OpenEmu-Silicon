@@ -1,3 +1,4 @@
+#import <OpenEmuSystem/OpenEmuSystem.h>
 /*
  Copyright (c) 2013, OpenEmu Team
  
@@ -25,8 +26,6 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#import <OpenEmuSystem/OpenEmuSystem.h>
-
 OE_EXPORTED_CLASS
 @interface OEWiiSystemController : OESystemController
 

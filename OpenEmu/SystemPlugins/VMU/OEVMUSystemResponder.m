@@ -27,6 +27,9 @@
 #import "OEVMUSystemResponder.h"
 #import "OEVMUSystemResponderClient.h"
 
+
+
+
 @implementation OEVMUSystemResponder
 @dynamic client;
 
@@ -37,12 +40,14 @@
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushVMUButton:(OEVMUButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    [(id<OEVMUSystemResponderClient>)client didPushVMUButton:(OEVMUButton)k forPlayer:aKey.player];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseVMUButton:(OEVMUButton)aKey.key forPlayer:aKey.player];
+    id client = (id)self.client;
+    [(id<OEVMUSystemResponderClient>)client didReleaseVMUButton:(OEVMUButton)k forPlayer:aKey.player];
 }
 
 @end

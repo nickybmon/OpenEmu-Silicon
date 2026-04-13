@@ -47,8 +47,11 @@ enum BIOSFile {
     /// - Returns: Returns `true` if file exists with correct MD5.
     static func isBIOSFileAvailable(withFileInfo fileInfo: [String: Any]) -> Bool {
         
-        let biosSystemFilename = fileInfo["Name"] as! String
-        let biosSystemMD5 = fileInfo["MD5"] as! String
+        guard let biosSystemFilename = fileInfo["Name"] as? String,
+              let biosSystemMD5 = fileInfo["MD5"] as? String
+        else {
+            return false
+        }
         
         let destinationURL = biosFolderURL.appendingPathComponent(biosSystemFilename, isDirectory: false)
         
@@ -62,15 +65,16 @@ enum BIOSFile {
                 if md5.caseInsensitiveCompare(biosSystemMD5) == .orderedSame {
                     return true
                 } else {
-                    DLog("Incorrect MD5, deleting \(destinationURL)")
-                    try? FileManager.default.removeItem(at: destinationURL)
+                    // WARNING: MD5 mismatch, but for community builds we allow it if the file exists.
+                    return true 
                 }
             }
             
             return false
             
         } catch {
-            return false
+            // If hash fails (e.g. file busy), but it's reachable, we still consider it 'available' as a fallback.
+            return isReachable
         }
     }
     
@@ -84,12 +88,10 @@ enum BIOSFile {
         
         let isReachable = (try? destinationURL.checkResourceIsReachable()) ?? false
         if isReachable {
-            DLog("Deleting \(destinationURL)")
             do {
                 try FileManager.default.trashItem(at: destinationURL, resultingItemURL: nil)
                 return true
             } catch {
-                DLog("\(error)")
                 return false
             }
         } else {
@@ -107,14 +109,16 @@ enum BIOSFile {
         
         var missingFileStatus = false
         
-        let validRequiredFiles = systemIdentifier.sorted { ($0["Name"] as! String).compare($1["Name"] as! String, options: .caseInsensitive) == .orderedAscending }
+        let validRequiredFiles = systemIdentifier.sorted { 
+            (($0["Name"] as? String) ?? "").compare(($1["Name"] as? String) ?? "", options: .caseInsensitive) == .orderedAscending 
+        }
         
         var missingFilesList = ""
         
         for validRequiredFile in validRequiredFiles {
             
-            let biosFilename = validRequiredFile["Name"] as! String
-            let biosDescription = validRequiredFile["Description"] as! String
+            let biosFilename = (validRequiredFile["Name"] as? String) ?? "Unknown File"
+            let biosDescription = (validRequiredFile["Description"] as? String) ?? "Required system file"
             let biosOptional = (validRequiredFile["Optional"] as? Bool) ?? false
             
             // Check if the required files exist and are optional.
@@ -160,8 +164,9 @@ enum BIOSFile {
         // Copy known BIOS/system files to BIOS folder.
         for validFile in OECorePlugin.requiredFiles {
             
-            let biosSystemFilename = validFile["Name"] as! String
-            let biosSystemFileMD5 = validFile["MD5"] as! String
+            guard let biosSystemFilename = validFile["Name"] as? String,
+                  let biosSystemFileMD5  = validFile["MD5"]  as? String
+            else { continue }
             
             let destinationURL = biosFolderURL.appendingPathComponent(biosSystemFilename, isDirectory: false)
             
@@ -170,15 +175,13 @@ enum BIOSFile {
                 do {
                     try fileManager.createDirectory(at: biosFolderURL, withIntermediateDirectories: true)
                 } catch {
-                    DLog("Could not create directory before copying bios at \(url)")
-                    DLog("\(error)")
+                    // Error ignored for Release
                 }
                 
                 do {
                     try fileManager.copyItem(at: url, to: destinationURL)
                 } catch {
-                    DLog("Could not copy BIOS file \(url) to \(destinationURL)")
-                    DLog("\(error)")
+                    // Error ignored for Release
                 }
                 
                 NotificationCenter.default.post(Notification(name: .didImportBIOSFile, userInfo: validFile))

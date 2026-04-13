@@ -168,12 +168,16 @@
     </systems>
   </core>
 
-  <!-- ✅ ARM64 native -->
+  <!--
+    ✅ ARM64 native — DeSmuME
+    DeSmuME is the preferred DS core for ARM64 as it operates flawlessly without
+    external BIOS files, avoiding the white-screen issues common in melonDS.
+  -->
   <core
-    id="org.openemu.desmume"
+    id="org.openemu.libretro.desmume"
     name="DeSmuME"
     appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/desmume.xml">
-    <description>Nintendo DS emulator</description>
+    <description>Nintendo DS emulator (ARM64 native, BIOS-free)</description>
     <systems>
       <system id="openemu.system.nds">Nintendo DS</system>
     </systems>
@@ -201,21 +205,99 @@
     </systems>
   </core>
 
-  <!-- ✅ ARM64 native -->
+  <!--
+    Mednafen (Beetle) cores — each system is a separate libretro dylib from the
+    buildbot.  Saturn is handled by Kronos below (better ARM64 perf).
+    PSX is handled by PCSX-ReARMed (ARM NEON optimised, same accuracy).
+    The individual Beetle cores remain for PC Engine, Lynx, WonderSwan, VB, NGP, PC-FX.
+  -->
+
+  <!-- ✅ ARM64 native — Sega Saturn via Kronos (OpenGL, bridged via ANGLE) -->
   <core
-    id="org.openemu.Mednafen"
-    name="Mednafen"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen.xml">
-    <description>Multi-system emulator (PSX, PC Engine, Lynx, WonderSwan, Virtual Boy, Neo Geo Pocket, PC-FX)</description>
+    id="org.openemu.Kronos"
+    name="Kronos"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/kronos.xml">
+    <description>Sega Saturn emulator (ARM64 native, replaces Beetle Saturn)</description>
+    <systems>
+      <system id="openemu.system.saturn">Sega Saturn</system>
+    </systems>
+  </core>
+
+  <!-- ✅ ARM64 native — PSX via PCSX-ReARMed (ARM NEON hand-optimised) -->
+  <core
+    id="org.openemu.PCSX-ReARMed"
+    name="PCSX-ReARMed"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/pcsx_rearmed.xml">
+    <description>PlayStation emulator (ARM64 native, NEON optimised)</description>
     <systems>
       <system id="openemu.system.psx">PlayStation</system>
+    </systems>
+  </core>
+
+  <!-- ✅ ARM64 native — Beetle PC Engine (PC Engine / TurboGrafx + CD) -->
+  <core
+    id="org.openemu.BeetlePCE"
+    name="Beetle PC Engine"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen_pce.xml">
+    <description>PC Engine / TurboGrafx-16 emulator</description>
+    <systems>
       <system id="openemu.system.pce">PC Engine</system>
       <system id="openemu.system.pcecd">PC Engine CD</system>
-      <system id="openemu.system.pcfx">PC-FX</system>
+    </systems>
+  </core>
+
+  <!-- ✅ ARM64 native — Beetle Lynx -->
+  <core
+    id="org.openemu.BeetleLynx"
+    name="Beetle Lynx"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen_lynx.xml">
+    <description>Atari Lynx emulator</description>
+    <systems>
       <system id="openemu.system.lynx">Atari Lynx</system>
+    </systems>
+  </core>
+
+  <!-- ✅ ARM64 native — Beetle WonderSwan -->
+  <core
+    id="org.openemu.BeetleWS"
+    name="Beetle WonderSwan"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen_wswan.xml">
+    <description>WonderSwan / WonderSwan Color emulator</description>
+    <systems>
       <system id="openemu.system.ws">WonderSwan</system>
+    </systems>
+  </core>
+
+  <!-- ✅ ARM64 native — Beetle Virtual Boy -->
+  <core
+    id="org.openemu.BeetleVB"
+    name="Beetle Virtual Boy"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen_vb.xml">
+    <description>Virtual Boy emulator</description>
+    <systems>
       <system id="openemu.system.vb">Virtual Boy</system>
+    </systems>
+  </core>
+
+  <!-- ✅ ARM64 native — Beetle Neo Geo Pocket -->
+  <core
+    id="org.openemu.BeetleNGP"
+    name="Beetle NGP"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen_ngp.xml">
+    <description>Neo Geo Pocket / Color emulator</description>
+    <systems>
       <system id="openemu.system.ngp">Neo Geo Pocket</system>
+    </systems>
+  </core>
+
+  <!-- ✅ ARM64 native — Beetle PC-FX -->
+  <core
+    id="org.openemu.BeetlePCFX"
+    name="Beetle PC-FX"
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/mednafen_pcfx.xml">
+    <description>PC-FX emulator</description>
+    <systems>
+      <system id="openemu.system.pcfx">PC-FX</system>
     </systems>
   </core>
 

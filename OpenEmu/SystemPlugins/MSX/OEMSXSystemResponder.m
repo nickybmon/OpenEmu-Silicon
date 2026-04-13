@@ -27,7 +27,20 @@
 #import "OEMSXSystemResponder.h"
 #import "OEMSXSystemResponderClient.h"
 
+#import <Foundation/Foundation.h>
+
+@protocol OELibretroInputReceiver <NSObject>
+- (void)receiveLibretroButton:(uint8_t)button forPort:(NSUInteger)port pressed:(BOOL)pressed;
+- (void)receiveLibretroAnalogIndex:(uint8_t)index axis:(uint8_t)axis value:(int16_t)value forPort:(NSUInteger)port;
+@end
+
+
+
+
+
 @implementation OEMSXSystemResponder
+static const uint8_t kMSXLibretroMap[] = { 0, 8 };
+
 
 @dynamic client;
 
@@ -145,14 +158,26 @@ static NSDictionary *virtualPhysicalKeyMap;
 
 - (void)pressEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didPushMSXJoystickButton:(OEMSXJoystickButton)aKey.key
-                                 controller:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kMSXLibretroMap)) ? kMSXLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:YES];
+        return;
+    }
+    [(id<OEMSXSystemResponderClient>)client didPushMSXJoystickButton:(NSInteger)k];
 }
 
 - (void)releaseEmulatorKey:(OESystemKey *)aKey
 {
-    [self.client didReleaseMSXJoystickButton:(OEMSXJoystickButton)aKey.key
-                                    controller:aKey.player];
+    id client = (id)self.client;
+    NSUInteger k = aKey.key;
+    if ([client respondsToSelector:@selector(receiveLibretroButton:forPort:pressed:)]) {
+        uint8_t btn = (k < sizeof(kMSXLibretroMap)) ? kMSXLibretroMap[k] : 0xFF;
+        [(id<OELibretroInputReceiver>)client receiveLibretroButton:btn forPort:aKey.player pressed:NO];
+        return;
+    }
+    [(id<OEMSXSystemResponderClient>)client didReleaseMSXJoystickButton:(NSInteger)k];
 }
 
 - (void)HIDKeyDown:(OEHIDEvent *)anEvent
