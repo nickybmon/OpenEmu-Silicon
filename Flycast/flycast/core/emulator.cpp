@@ -958,9 +958,8 @@ void Emulator::run()
 {
 	verify(state == Running);
 	startTime = sh4_sched_now64();
-	renderTimeout = false;
 	if (!singleStep && stepRangeTo == 0)
-	getSh4Executor()->Start();
+		getSh4Executor()->Start();
 	try {
 		runInternal();
 		if (ggpo::active())
@@ -1003,9 +1002,8 @@ void Emulator::start()
 				try {
 					while (state == Running || singleStep || stepRangeTo != 0)
 					{
-						startTime = sh4_sched_now64();
-						renderTimeout = false;
-						runInternal();
+					startTime = sh4_sched_now64();
+					runInternal();
 						if (!ggpo::nextFrame())
 							break;
 					}
@@ -1070,45 +1068,24 @@ bool Emulator::render()
 		if (state != Running)
 			return false;
 		run();
-		// TODO if stopping due to a user request, no frame has been rendered
-		return !renderTimeout;
+		return true;
 	}
 	if (!checkStatus())
 		return false;
 	if (state != Running)
 		return false;
-	// Use a 50 ms timeout so the caller (e.g. OpenEmu's game-loop thread) stays
-	// responsive during cold boot.  rend_single_frame() returns false when the
-	// timeout fires with no frame ready; the caller simply re-invokes render()
-	// on the next tick, showing a black frame until the DC boot completes.
-	//
-	// History: this was formerly -1 (wait forever) to handle the slow GD-ROM
-	// load under the interpreter, but that blocks the OE game-loop thread for
-	// the entire cold-boot duration, causing an AppHang >2000 ms.  50 ms is
-	// comfortably above one DC frame at real-time speed (~16 ms) so gameplay
-	// after boot is unaffected.  rend_cancel_emu_wait() / cancelEnqueue() still
-	// unblocks this wait cleanly on quit.
-#if FEAT_SHREC != DYNAREC_NONE
-	const int frameTimeout = config::DynarecEnabled ? 0 : 50;
-#else
-	const int frameTimeout = 50;
-#endif
-	return rend_single_frame(true, frameTimeout);
+	return rend_single_frame(true);
 }
 
 void Emulator::vblank()
 {
 	EventManager::event(Event::VBlank);
 	runner.execTasks();
-	// Log a heartbeat every 300 vblanks (~5 s at 60 fps) so we can confirm
-	// the SH4 is alive during slow cold-boot loading screens.
-	static u32 vblankCount = 0;
-	if (++vblankCount % 300 == 0)
-		NOTICE_LOG(COMMON, "SH4 heartbeat: %u vblanks elapsed", vblankCount);
-	// Time out if a frame hasn't been rendered for 50 ms
-	if (sh4_sched_now64() - startTime <= 10000000)
+	// In non-threaded mode, stop the SH4 after 50ms without a rendered frame so
+	// the OE game loop stays alive during long GD-ROM loads. The 50ms window lets
+	// the GD-ROM scheduler fire and deliver DMA completion interrupts uninterrupted.
+	if (sh4_sched_now64() - startTime <= 50_sh4ms)
 		return;
-	renderTimeout = true;
 	if (ggpo::active())
 		ggpo::endOfFrame();
 	else if (!config::ThreadedRendering)

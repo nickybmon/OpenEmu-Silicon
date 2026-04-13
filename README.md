@@ -127,6 +127,23 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the full plan with implementation d
 - A few cores have quirks on Apple Silicon still being investigated (see open issues)
 - Input Monitoring permission may need to be granted manually in System Settings → Privacy & Security
 
+### Sega Dreamcast — BIOS files required for full compatibility
+
+Dreamcast emulation uses the [Flycast](https://github.com/flyinghead/flycast) core. Flycast includes a built-in HLE (High-Level Emulation) BIOS that lets most games boot without any extra files. However, some games — including **Sonic Adventure 2** and other titles that rely on precise GD-ROM timing — have a known freeze on the loading screen when using HLE BIOS. This is a [documented upstream Flycast limitation](https://github.com/flyinghead/flycast/issues/1944), not specific to this fork.
+
+**The permanent fix is to provide real Dreamcast BIOS files.** With a real BIOS, the freeze does not occur.
+
+Place these two files in your OpenEmu BIOS folder (`~/Library/Application Support/OpenEmu/BIOS/`):
+
+| File | Description |
+|------|-------------|
+| `dc_boot.bin` | Dreamcast boot ROM (1 MB) |
+| `dc_flash.bin` | Dreamcast flash memory (128 KB) |
+
+These files are copyrighted by Sega and cannot be distributed here. You must obtain them from a Dreamcast console you own.
+
+Dreamcast emulation in this app requires the real BIOS files. There are no workarounds or fallbacks — if the files are missing, games will not load.
+
 ---
 
 ## Requirements

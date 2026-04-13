@@ -124,10 +124,8 @@ static int schedCallback(int tag, int cycles, int jitter, void *arg)
 // GDC_BUSY forever and the game freezes on the loading screen.
 static void gdrom_hle_vblank(Event /*event*/, void* /*arg*/)
 {
-	if (gd_hle_state.status == GDC_BUSY) {
-		DEBUG_LOG(REIOS, "gdrom_hle_vblank: advancing command %d", (int)gd_hle_state.command);
+	if (gd_hle_state.status == GDC_BUSY)
 		GD_HLE_Command(gd_hle_state.command);
-	}
 }
 
 void reios_init() {

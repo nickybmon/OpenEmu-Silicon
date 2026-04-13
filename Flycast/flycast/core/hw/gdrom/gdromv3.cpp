@@ -1038,7 +1038,8 @@ static void gd_process_spi_cmd()
 }
 //Read handler
 u32 ReadMem_gdrom(u32 Addr, u32 sz)
-{	
+{
+
 	switch (Addr)
 	{
 		//cancel interrupt

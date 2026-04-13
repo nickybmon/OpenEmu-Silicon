@@ -103,17 +103,23 @@ final class CoreUpdater: NSObject {
                 return
             }
             
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                if #available(macOS 11.0, *) {
+                    Logger.download.warning("Skipping appcast \(url, privacy: .public): HTTP \(httpResponse.statusCode)")
+                }
+                return
+            }
+            
             guard let data else {
                 if #available(macOS 11.0, *) {
-                    Logger.download.error("Data was nil for \(url, privacy: .public): \(error, privacy: .public)")
+                    Logger.download.error("Data was nil for \(url, privacy: .public)")
                 }
                 return
             }
             
             do {
-                let items: [XMLElement]
                 let appcast = try XMLDocument(data: data)
-                items = try appcast.nodes(forXPath: "/rss/channel/item") as! [XMLElement]
+                guard let items = try appcast.nodes(forXPath: "/rss/channel/item") as? [XMLElement] else { return }
                 
                 for item in items {
                     if let enclosure = item.elements(forName: "enclosure").first,
@@ -561,11 +567,18 @@ private final class CoreAppcast {
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             defer { handler?() }
             
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                if #available(macOS 11.0, *) {
+                    Logger.download.warning("Skipping appcast \(url, privacy: .public): HTTP \(httpResponse.statusCode)")
+                }
+                return
+            }
+            
             guard let data else { return }
             
             do {
                 self.items = try self.process(data: data)
-            } catch { 
+            } catch {
                 if #available(macOS 11.0, *) {
                     Logger.download.error("Failed to process data for \(url, privacy: .public): \(error, privacy: .public)")
                 }
@@ -577,7 +590,7 @@ private final class CoreAppcast {
     
     private func process(data: Data) throws -> [CoreAppcastItem] {
         let appcast = try XMLDocument(data: data, options: [])
-        let items = try appcast.nodes(forXPath: "/rss/channel/item") as! [XMLElement]
+        guard let items = try appcast.nodes(forXPath: "/rss/channel/item") as? [XMLElement] else { return [] }
         return items.compactMap { item in
             if let enclosure = item.elements(forName: "enclosure").first,
                let fileURL = enclosure.attribute(forName: "url")?.stringValue,
