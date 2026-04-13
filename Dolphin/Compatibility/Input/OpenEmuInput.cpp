@@ -404,8 +404,8 @@ void Input::openemu_set_controller_port_device(unsigned port, unsigned device)
           ccButtons->SetControlExpression(8, "Home");                             // Home
           ccTriggers->SetControlExpression(0, "L");                               // L-trigger
           ccTriggers->SetControlExpression(1, "R");                               // R-trigger
-          ccTriggers->SetControlExpression(2, "`" + devAnalog + "ccLTrigger0+`"); // L-trigger Analog
-          ccTriggers->SetControlExpression(3, "`" + devAnalog + "ccRTrigger1+`"); // R-trigger Analog
+          ccTriggers->SetControlExpression(2, "`" + devAnalog + ":ccLTrigger0+`"); // L-trigger Analog
+          ccTriggers->SetControlExpression(3, "`" + devAnalog + ":ccRTrigger1+`"); // R-trigger Analog
           ccDpad->SetControlExpression(0, "Up");                                  // Up
           ccDpad->SetControlExpression(1, "Down");                                // Down
           ccDpad->SetControlExpression(2, "Left");                                // Left
@@ -447,10 +447,10 @@ void Input::openemu_set_controller_port_device(unsigned port, unsigned device)
 
             ncButtons->SetControlExpression(0, "C");                        // C
             ncButtons->SetControlExpression(1, "Z");                        // Z
-            ncStick->SetControlExpression(0, "`" + devAnalog + ":ccY0-`");  // Up
-            ncStick->SetControlExpression(1, "`" + devAnalog + ":ccY0+`");  // Down
-            ncStick->SetControlExpression(2, "`" + devAnalog + ":ccX0-`");  // Left
-            ncStick->SetControlExpression(3, "`" + devAnalog + ":ccX0+`");  // Right
+            ncStick->SetControlExpression(0, "`" + devAnalog + ":ncY0-`");  // Up
+            ncStick->SetControlExpression(1, "`" + devAnalog + ":ncY0+`");  // Down
+            ncStick->SetControlExpression(2, "`" + devAnalog + ":ncX0-`");  // Left
+            ncStick->SetControlExpression(3, "`" + devAnalog + ":ncX0+`");  // Right
             ncShake->SetControlExpression(0, "ncShake");                    // X
             ncShake->SetControlExpression(1, "ncShake");                    // Y
             ncShake->SetControlExpression(2, "ncShake");                    // Z

@@ -326,8 +326,44 @@ class AppDelegate: NSObject {
     }
     
     // MARK: -
-
     
+    fileprivate func validateDefaultPluginAssignments() {
+        
+        // Remove Higan WIP systems as defaults if found, since our core port does not support them.
+        let defaults = UserDefaults.standard
+        if defaults.string(forKey: "defaultCore.openemu.system.gb") == "org.openemu.Higan" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.gb")
+        }
+        if defaults.string(forKey: "defaultCore.openemu.system.gba") == "org.openemu.Higan" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.gba")
+        }
+        if defaults.string(forKey: "defaultCore.openemu.system.nes") == "org.openemu.Higan" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.nes")
+        }
+        
+        // Remove system defaults for deprecated core plugins.
+        if defaults.string(forKey: "defaultCore.openemu.system.gba") == "org.openemu.VisualBoyAdvance" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.gba")
+        }
+        if defaults.string(forKey: "defaultCore.openemu.system.gg") == "org.openemu.CrabEmu" ||
+            defaults.string(forKey: "defaultCore.openemu.system.gg") == "org.openemu.TwoMbit" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.gg")
+        }
+        if defaults.string(forKey: "defaultCore.openemu.system.ngp") == "org.openemu.NeoPop" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.ngp")
+        }
+        if defaults.string(forKey: "defaultCore.openemu.system.saturn") == "org.openemu.Yabause" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.saturn")
+        }
+        if defaults.string(forKey: "defaultCore.openemu.system.sms") == "org.openemu.CrabEmu" ||
+            defaults.string(forKey: "defaultCore.openemu.system.sms") == "org.openemu.TwoMbit" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.sms")
+        }
+        if defaults.string(forKey: "defaultCore.openemu.system.gc") == "org.openemu.Dolphin_Core" {
+            defaults.removeObject(forKey: "defaultCore.openemu.system.gc")
+        }
+    }
+
     fileprivate func loadPlugins(with library: OELibraryDatabase) {
         // Register all system controllers with the bindings controller.
         for plugin in OESystemPlugin.allPlugins {
@@ -390,16 +426,38 @@ class AppDelegate: NSObject {
             $0.coreIdentifier == "org.openemu.VisualBoyAdvance" ||
             $0.coreIdentifier == "org.openemu.Dolphin_Core"
         }
+        guard !incompatibleSaveStates.isEmpty else { return }
+
+        // Build a human-readable list of affected cores for the alert.
+        let coreDisplayNames: [String: String] = [
+            "org.openemu.CrabEmu":          "CrabEmu (Game Gear / Master System / SG-1000)",
+            "org.openemu.desmume":          "DeSmuME (Nintendo DS)",
+            "org.openemu.GenesisPlus":      "Genesis Plus GX (Genesis / Mega Drive)",
+            "org.openemu.Mupen64Plus":      "Mupen64Plus (Nintendo 64)",
+            "org.openemu.NeoPop":           "NeoPop (Neo Geo Pocket)",
+            "org.openemu.TwoMbit":          "TwoMbit",
+            "org.openemu.VisualBoyAdvance": "VisualBoyAdvance (Game Boy / GBA)",
+            "org.openemu.Dolphin_Core":     "Dolphin (GameCube / Wii)",
+        ]
         
-        if !incompatibleSaveStates.isEmpty {
-            // Log removed for Release
-            
-            for saveState in incompatibleSaveStates {
-                saveState.deleteAndRemoveFiles()
-            }
-            
-            try? context.save()
+        let affectedCores = Set(incompatibleSaveStates.compactMap { coreDisplayNames[$0.coreIdentifier ?? ""] })
+            .sorted()
+            .joined(separator: ", ")
+
+        // Log removed for Release
+        
+        // Show the alert (Destructive action requires UI notification)
+        let alert = OEAlert()
+        alert.messageText = NSLocalizedString("Incompatible Save States", comment: "")
+        alert.informativeText = String(format: NSLocalizedString("Save states created with the following cores are incompatible with this version and were removed:\n\n%@", comment: ""), affectedCores)
+        alert.defaultButtonTitle = NSLocalizedString("OK", comment: "")
+        alert.runModal()
+
+        for saveState in incompatibleSaveStates {
+            saveState.deleteAndRemoveFiles()
         }
+        
+        try? context.save()
     }
     
     fileprivate func setUpHIDSupport() {
@@ -577,7 +635,7 @@ class AppDelegate: NSObject {
     
     @objc(migrationForceUpdateCores:)
     func migrationForceUpdateCores() throws {
-        // Purged: CoreUpdater.shared.checkForUpdatesAndInstall()
+        // Deferred: CoreUpdater.shared.checkForUpdatesAndInstall()
     }
     
     @objc(migrationRemoveCoreDefaults:)
@@ -816,6 +874,8 @@ extension AppDelegate: NSMenuDelegate {
         
         NSDocumentController.shared.clearRecentDocuments(nil)
         
+        validateDefaultPluginAssignments()
+        
         DispatchQueue.main.async {
             self.loadDatabase()
         }
@@ -846,7 +906,8 @@ extension AppDelegate: NSMenuDelegate {
         OECoreMigration.resignCoresIfNeeded()
         OECoreMigration.runIfNeeded()
         loadPlugins(with: database)
-        removeIncompatibleSaveStates(from: database)
+
+        // Deferred: CoreUpdater.shared.checkForUpdatesAndInstall()
 
         
         if !restoreWindow {
@@ -883,6 +944,7 @@ extension AppDelegate: NSMenuDelegate {
         // before the consent sheet appears. Showing a runModal alert before the window
         // rendered caused a CA transaction hang on macOS 26 (OPENEM-SILICON-8 et al).
         SentryService.configureIfNeeded()
+        removeIncompatibleSaveStates(from: database)
 
         CoreUpdater.shared.checkForNewCores()   // TODO: check error from completion handler
         

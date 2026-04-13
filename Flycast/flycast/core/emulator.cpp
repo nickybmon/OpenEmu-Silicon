@@ -1077,7 +1077,7 @@ bool Emulator::render()
 		return false;
 	if (state != Running)
 		return false;
-	return rend_single_frame(true); // FIXME stop flag?
+	return rend_single_frame(true, 14); // 14ms: return quickly if no frame ready so OE game loop stays responsive
 }
 
 void Emulator::vblank()

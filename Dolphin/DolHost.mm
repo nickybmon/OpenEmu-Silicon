@@ -135,7 +135,7 @@ void DolHost::Init(std::string supportDirectoryPath, std::string cpath)
     //Set the Sound
     Config::SetBase(Config::MAIN_DSP_HLE, true);
     Config::SetBase(Config::MAIN_DSP_THREAD, true);
-    Config::SetBase(Config::MAIN_AUDIO_VOLUME, 0);
+    Config::SetBase(Config::MAIN_AUDIO_VOLUME, 100);
     
     // Dual-core mode: CPU and GPU on separate threads for better performance.
     // HostDispatchJobs is called from OE's UpdateFrame() loop and is thread-safe in both modes.

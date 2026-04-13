@@ -35,10 +35,10 @@
  * base class */
 #define OE_SAMPLERATE 48000
 
-/* max amount of bytes pullable at once
- * should be <= Mixer::MAX_SAMPLES * sizeof(short) * 2 (= 16384)
- * however we can't use Mixer::MAX_SAMPLES because it is private */
-#define OE_SIZESOUNDBUFFER (16384 / 2)
+/* max bytes OE will request per pull: 4 frames at 48kHz stereo s16
+ * = 48000 / 60 * 4 bytes/frame * 4 = 12800 bytes (~85ms headroom).
+ * Larger than one video frame so the ring never starves. */
+#define OE_SIZESOUNDBUFFER (48000 / 60 * 4 * 4)
 
 class OpenEmuAudioStream final : public SoundStream
 {

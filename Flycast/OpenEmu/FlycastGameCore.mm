@@ -85,6 +85,7 @@ static OpenEmuAudioBackend openEmuAudioBackend;
     int _videoWidth;
     int _videoHeight;
     BOOL _isInitialized;
+    BOOL _emuInitialized;
     double _frameInterval;
 }
 @end
@@ -137,7 +138,7 @@ __weak FlycastGameCore *_current;
 
     config::RendererType = RenderType::OpenGL;
     config::AudioBackend.set("openemu");
-    config::DynarecEnabled = true;
+    config::DynarecEnabled.override(false); // interpreter — JIT has stability issues on ARM64 macOS
 
     if (!addrspace::reserve()) {
         NSLog(@"[Flycast] Failed to reserve Dreamcast address space");
@@ -145,11 +146,24 @@ __weak FlycastGameCore *_current;
     os_InstallFaultHandler();
 
     emu.init();
+    _emuInitialized = YES;
 }
 
 - (void)startEmulation
 {
     [super startEmulation];
+}
+
+- (void)stopEmulationWithCompletionHandler:(void(^)(void))completionHandler
+{
+    // In threaded rendering mode, the OE game loop thread is blocked inside
+    // rend_single_frame() waiting for the next frame from the SH4 thread.
+    // emu.stop() calls rend_cancel_emu_wait() which unblocks it, freeing the
+    // thread to execute the completion handler. Safe to call twice — emu.stop()
+    // checks state != Running and returns immediately on the second call.
+    if (_isInitialized)
+        emu.stop();
+    [super stopEmulationWithCompletionHandler:completionHandler];
 }
 
 - (void)stopEmulation
@@ -162,7 +176,10 @@ __weak FlycastGameCore *_current;
         _isInitialized = NO;
     }
     os_UninstallFaultHandler();
-    emu.term();
+    if (_emuInitialized) {
+        emu.term();
+        _emuInitialized = NO;
+    }
     [super stopEmulation];
 }
 
@@ -182,7 +199,9 @@ __weak FlycastGameCore *_current;
             gui_init();
             theGLContext.init();
             emu.loadGame(_romPath.fileSystemRepresentation);
-            config::ThreadedRendering.override(false);
+            // loadGame calls reset()+load() which clears all settings — re-apply after it returns.
+            config::DynarecEnabled.override(false); // keep interpreter; JIT unstable on ARM64 macOS
+            config::AudioBackend.set("openemu");    // reset() clears this to "auto"; restore before InitAudio()
             rend_init_renderer();
             emu.start();
             gui_setState(GuiState::Closed);
@@ -197,7 +216,6 @@ __weak FlycastGameCore *_current;
     }
 
     emu.render();
-    [self.renderDelegate presentDoubleBufferedFBO];
 }
 
 #pragma mark - Video
@@ -209,7 +227,7 @@ __weak FlycastGameCore *_current;
 
 - (BOOL)needsDoubleBufferedFBO
 {
-    return YES;
+    return NO;
 }
 
 - (OEIntSize)bufferSize

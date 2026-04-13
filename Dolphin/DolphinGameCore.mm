@@ -39,16 +39,16 @@
 #import "DolphinGameCore.h"
 #include "DolHost.h"
 #include "AudioCommon/SoundStream.h"
+#include "Core/State.h"
 #include "Core/System.h"
 #include "OpenEmuAudioStream.h"
+#include "UICommon/UICommon.h"
 #include <stdatomic.h>
 
 #import <AppKit/AppKit.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
-#define SAMPLERATE 48000
-#define SIZESOUNDBUFFER 48000 / 60 * 4
 #define OpenEmu 1
 
 @interface DolphinGameCore () <OEGCSystemResponderClient>
@@ -286,9 +286,18 @@ DolphinGameCore *_current = 0;
 - (NSUInteger)read:(void *)buffer maxLength:(NSUInteger)len
 {
     SoundStream* sound_stream = Core::System::GetInstance().GetSoundStream();
-    if (_isInitialized && sound_stream)
-        return static_cast<OpenEmuAudioStream*>(sound_stream)->readAudio(buffer, (int)len);
-    return 0;
+    OpenEmuAudioStream* oe_stream = dynamic_cast<OpenEmuAudioStream*>(sound_stream);
+    if (_isInitialized && oe_stream) {
+        // Always consume the full requested length. Mixer::Mix() zeroes the output
+        // buffer before mixing and always returns num_samples, so any frames Dolphin
+        // hasn't produced yet come back as silence. Returning len (not the Mix()
+        // return value) prevents AVAudioSourceNode from setting mDataByteSize to a
+        // short count, which would cause CoreAudio to output a click for the gap.
+        oe_stream->readAudio(buffer, (int)len);
+    } else {
+        memset(buffer, 0, len);
+    }
+    return len;
 }
 
 - (NSUInteger)write:(const void *)buffer maxLength:(NSUInteger)length
@@ -299,25 +308,44 @@ DolphinGameCore *_current = 0;
 # pragma mark - Save States
 - (void)saveStateToFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
 {
-    // we need to make sure we are initialized before attempting to save a state
-    while (! _isInitialized)
-        usleep (1000);
+    // Wait for full initialization before saving.
+    while (!_isInitialized)
+        usleep(1000);
 
-    block(dol_host->SaveState([fileName UTF8String]),nil);
+    // State::SaveAs dispatches the file write to a background thread and returns immediately.
+    // UICommon::FlushUnsavedData() acquires the exclusive save-in-progress lock, which blocks
+    // until the background thread releases its shared lock — i.e. until the file is fully written.
+    // If SaveToBuffer fails internally (DoState error), Dolphin never emplaces the work item and
+    // the file is never written. Check existence so OE gets an accurate success/failure signal.
+    dol_host->SaveState([fileName UTF8String]);
+    UICommon::FlushUnsavedData();
 
+    BOOL success = [[NSFileManager defaultManager] fileExistsAtPath:fileName];
+    if (success) {
+        block(YES, nil);
+    } else {
+        NSError *err = [NSError errorWithDomain:OEGameCoreErrorDomain
+                                          code:OEGameCoreCouldNotSaveStateError
+                                      userInfo:@{NSLocalizedDescriptionKey: @"Dolphin failed to write the save state file. Check that the game is fully loaded before saving."}];
+        block(NO, err);
+    }
 }
 
 - (void)loadStateFromFileAtPath:(NSString *)fileName completionHandler:(void (^)(BOOL, NSError *))block
 {
     if (!_isInitialized)
     {
-        //Start a separate thread to load
+        // Core not yet running — defer until initialization completes.
         autoLoadStatefileName = fileName;
-        
         [NSThread detachNewThreadSelector:@selector(autoloadWaitThread) toTarget:self withObject:nil];
-        block(true, nil);
-    } else {
-        block(dol_host->LoadState([fileName UTF8String]),nil);
+        block(YES, nil);
+    }
+    else
+    {
+        // State::LoadAs runs synchronously on the CPU thread via RunOnCPUThread,
+        // so by the time LoadState returns the state has been applied.
+        dol_host->LoadState([fileName UTF8String]);
+        block(YES, nil);
     }
 }
 
@@ -325,10 +353,9 @@ DolphinGameCore *_current = 0;
 {
     @autoreleasepool
     {
-        //Wait here until we get the signal for full initialization
         while (!_isInitialized)
-            usleep (100);
-        
+            usleep(100);
+
         dol_host->LoadState([autoLoadStatefileName UTF8String]);
     }
 }
