@@ -32,6 +32,8 @@ cdda_t cdda;
 
 static gd_states gd_state;
 static DiscType gd_disk_type;
+
+int gdrom_diag_get_state() { return (int)gd_state; }
 /*
 	GD rom reset -> GDS_WAITCMD
 
@@ -1036,7 +1038,8 @@ static void gd_process_spi_cmd()
 }
 //Read handler
 u32 ReadMem_gdrom(u32 Addr, u32 sz)
-{	
+{
+
 	switch (Addr)
 	{
 		//cancel interrupt

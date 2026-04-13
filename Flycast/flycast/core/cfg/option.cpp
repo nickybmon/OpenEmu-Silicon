@@ -131,7 +131,7 @@ Option<bool> SerialPTY("Debug.SerialPTY");
 Option<bool> GDB("Debug.GDBEnabled");
 Option<int> GDBPort("Debug.GDBPort", debugger::DEFAULT_PORT);
 Option<bool> GDBWaitForConnection("Debug.GDBWaitForConnection");
-Option<bool> UseReios("UseReios");
+Option<bool> UseReios("UseReios", false);
 Option<bool> FastGDRomLoad("FastGDRomLoad", false);
 Option<bool> RamMod32MB("Dreamcast.RamMod32MB", false);
 

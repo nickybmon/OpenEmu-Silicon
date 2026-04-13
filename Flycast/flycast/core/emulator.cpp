@@ -958,9 +958,8 @@ void Emulator::run()
 {
 	verify(state == Running);
 	startTime = sh4_sched_now64();
-	renderTimeout = false;
 	if (!singleStep && stepRangeTo == 0)
-	getSh4Executor()->Start();
+		getSh4Executor()->Start();
 	try {
 		runInternal();
 		if (ggpo::active())
@@ -1003,9 +1002,8 @@ void Emulator::start()
 				try {
 					while (state == Running || singleStep || stepRangeTo != 0)
 					{
-						startTime = sh4_sched_now64();
-						renderTimeout = false;
-						runInternal();
+					startTime = sh4_sched_now64();
+					runInternal();
 						if (!ggpo::nextFrame())
 							break;
 					}
@@ -1070,24 +1068,24 @@ bool Emulator::render()
 		if (state != Running)
 			return false;
 		run();
-		// TODO if stopping due to a user request, no frame has been rendered
-		return !renderTimeout;
+		return true;
 	}
 	if (!checkStatus())
 		return false;
 	if (state != Running)
 		return false;
-	return rend_single_frame(true, 14); // 14ms: return quickly if no frame ready so OE game loop stays responsive
+	return rend_single_frame(true);
 }
 
 void Emulator::vblank()
 {
 	EventManager::event(Event::VBlank);
 	runner.execTasks();
-	// Time out if a frame hasn't been rendered for 50 ms
-	if (sh4_sched_now64() - startTime <= 10000000)
+	// In non-threaded mode, stop the SH4 after 50ms without a rendered frame so
+	// the OE game loop stays alive during long GD-ROM loads. The 50ms window lets
+	// the GD-ROM scheduler fire and deliver DMA completion interrupts uninterrupted.
+	if (sh4_sched_now64() - startTime <= 50_sh4ms)
 		return;
-	renderTimeout = true;
 	if (ggpo::active())
 		ggpo::endOfFrame();
 	else if (!config::ThreadedRendering)

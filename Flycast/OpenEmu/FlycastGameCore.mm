@@ -46,9 +46,9 @@
 #include "hw/mem/addrspace.h"
 #include "oslib/oslib.h"
 #include "wsi/osx.h"
-
 #include <OpenGL/gl3.h>
 #include <sys/stat.h>
+
 
 #define SAMPLERATE 44100
 #define SIZESOUNDBUFFER (44100 / 60 * 4)
@@ -66,8 +66,18 @@ public:
     u32 push(const void *data, u32 frames, bool wait) override
     {
         if (_current) {
-            [[_current audioBufferAtIndex:0] write:(const uint8_t *)data
-             maxLength:frames * 4]; // stereo s16 = 4 bytes per frame
+            OERingBuffer *buf = (OERingBuffer *)[_current audioBufferAtIndex:0];
+            NSUInteger needed = (NSUInteger)frames * 4; // stereo s16 = 4 bytes per frame
+            if (wait) {
+                // Block until the ring buffer has room. This is Flycast's primary
+                // frame-rate governor: the SH4 thread calls push() with wait=true
+                // (config::LimitFPS=true) once per audio batch (~735 samples at 60fps).
+                // Without blocking here the SH4 runs unconstrained, causing sped-up
+                // and choppy gameplay.
+                while ([buf freeBytes] < needed)
+                    [NSThread sleepForTimeInterval:0.001];
+            }
+            [buf write:(const uint8_t *)data maxLength:needed];
         }
         return frames;
     }
@@ -138,7 +148,7 @@ __weak FlycastGameCore *_current;
 
     config::RendererType = RenderType::OpenGL;
     config::AudioBackend.set("openemu");
-    config::DynarecEnabled.override(false); // interpreter — JIT has stability issues on ARM64 macOS
+    config::DynarecEnabled.override(false); // JIT crashes on ARM64 macOS — no frames produced
 
     if (!addrspace::reserve()) {
         NSLog(@"[Flycast] Failed to reserve Dreamcast address space");
@@ -199,15 +209,21 @@ __weak FlycastGameCore *_current;
             gui_init();
             theGLContext.init();
             emu.loadGame(_romPath.fileSystemRepresentation);
-            // loadGame calls reset()+load() which clears all settings — re-apply after it returns.
-            config::DynarecEnabled.override(false); // keep interpreter; JIT unstable on ARM64 macOS
-            config::AudioBackend.set("openemu");    // reset() clears this to "auto"; restore before InitAudio()
+            config::DynarecEnabled.override(false);
+            config::AudioBackend.set("openemu");
+            config::FastGDRomLoad.override(true);
             rend_init_renderer();
             emu.start();
             gui_setState(GuiState::Closed);
             _isInitialized = YES;
         } catch (const std::exception &e) {
-            NSLog(@"[Flycast] Error loading game: %s", e.what());
+            NSString *msg = [NSString stringWithUTF8String:e.what()];
+            // loadGame throws if dc_boot.bin is missing — surface that clearly
+            if ([msg containsString:@"BIOS"] || [msg containsString:@"bios"]) {
+                NSLog(@"[Flycast] Dreamcast BIOS not found. Place dc_boot.bin and dc_flash.bin in ~/Library/Application Support/OpenEmu/BIOS/");
+            } else {
+                NSLog(@"[Flycast] Error loading game: %@", msg);
+            }
             return;
         } catch (...) {
             NSLog(@"[Flycast] Unknown error loading game");

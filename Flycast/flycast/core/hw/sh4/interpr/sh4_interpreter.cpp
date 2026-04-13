@@ -49,9 +49,8 @@ void Sh4Interpreter::Run()
 			try {
 				do
 				{
-					u32 op = ReadNexOp();
-
-					ExecuteOpcode(op);
+				u32 op = ReadNexOp();
+				ExecuteOpcode(op);
 				} while (ctx->cycle_counter > 0);
 				ctx->cycle_counter += SH4_TIMESLICE;
 				UpdateSystem_INTC();
