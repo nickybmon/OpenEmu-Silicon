@@ -24,6 +24,7 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import <TargetConditionals.h>
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #if TARGET_OS_OSX
@@ -61,6 +62,9 @@
 #define OE_EXPORTED_CLASS     __attribute__((visibility("default")))
 #define OE_DEPRECATED(reason) __attribute__((deprecated(reason)))
 #define OE_DEPRECATED_WITH_REPLACEMENT(reason, replacement) __attribute__((deprecated(reason, replacement)))
+
+#define OEGameCoreDefaultRealtimeConstraint 0.007
+#define OEGameCoreDefaultRealtimeLimit      0.03
 
 #pragma mark -
 
