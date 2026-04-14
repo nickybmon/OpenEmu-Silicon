@@ -248,7 +248,7 @@ static Class GameCoreClass = Nil;
             double expectedRate = [self audioSampleRateForBuffer:0];
             NSUInteger audioSamplesGenerated = audioBytesGenerated/(2*[self channelCount]);
             double realRate = audioSamplesGenerated/gameTime;
-            NSLog(@"AUDIO STATS: sample rate %f, real rate %f", expectedRate, realRate);
+
             wasZero = 0;
         }
 #endif
@@ -316,7 +316,7 @@ static Class GameCoreClass = Nil;
         NSTimeInterval timeOver = realTime - nextFrameTime;
         if(timeOver >= 1.0)
         {
-            os_log_debug(OE_LOG_DEFAULT, "Synchronizing because we are %g seconds behind", timeOver);
+
             nextFrameTime = realTime;
         }
 
@@ -338,7 +338,7 @@ static Class GameCoreClass = Nil;
 {
     [_renderDelegate suspendFPSLimiting];
     shouldStop = YES;
-    os_log_debug(OE_LOG_DEFAULT, "Ending thread");
+
     [self didStopEmulation];
 }
 
@@ -635,7 +635,7 @@ static Class GameCoreClass = Nil;
 
 - (void)setRate:(float)rate
 {
-    os_log_debug(OE_LOG_DEFAULT, "Rate change %f -> %f", _rate, rate);
+
 
     _rate = rate;
     if (_rate > 0.001)
@@ -751,7 +751,9 @@ static Class GameCoreClass = Nil;
 {
     if(buffer == 0) return [self audioSampleRate];
 
+#if DEBUG
     os_log_error(OE_LOG_DEFAULT, "Buffer count is greater than 1, must implement %{public}@", NSStringFromSelector(_cmd));
+#endif
 
     [self doesNotImplementSelector:_cmd];
     return 0;
