@@ -1,3 +1,32 @@
+/*
+ Copyright (c) 2026, OpenEmu Team
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+     * Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+     * Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+     * Neither the name of the OpenEmu Team nor the
+       names of its contributors may be used to endorse or promote products
+       derived from this software without specific prior written permission.
+
+ THIS SOFTWARE IS PROVIDED BY OpenEmu Team ''AS IS'' AND ANY
+ EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL OpenEmu Team BE LIABLE FOR ANY
+ DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#ifndef OE_LIBRETRO_H
+#define OE_LIBRETRO_H
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -8,7 +37,8 @@
 extern "C" {
 #endif
 
-// Minimal libretro.h for bridge compilation
+/* Minimal libretro implementation for OpenEmu bridge compilation. */
+
 #define RETRO_DEVICE_JOYPAD 1
 #define RETRO_DEVICE_ANALOG 2
 #define RETRO_DEVICE_POINTER 6
@@ -16,6 +46,7 @@ extern "C" {
 #define RETRO_DEVICE_ID_POINTER_X 0
 #define RETRO_DEVICE_ID_POINTER_Y 1
 #define RETRO_DEVICE_ID_POINTER_PRESSED 2
+
 typedef bool (*retro_environment_t)(unsigned cmd, void *data);
 typedef void (*retro_video_refresh_t)(const void *data, unsigned width, unsigned height, size_t pitch);
 typedef void (*retro_audio_sample_t)(int16_t left, int16_t right);
@@ -45,10 +76,12 @@ struct retro_hw_render_callback {
     retro_hw_get_current_framebuffer_t get_current_framebuffer;
     retro_hw_get_proc_address_t get_proc_address;
     
-    // Explicit padding layout: these MUST be bool, not uint32_t,
-    // to match Apple Silicon (arm64) alignment rules alongside
-    // upstream Libretro ABI specifications. Misalignments here
-    // cause version_major to be interpreted as 0.
+    /* 
+     ABI ALIGNMENT (ARM64): 
+     On Apple Silicon, 'bool' is 1-byte aligned. These fields must explicitly be bool 
+     to ensure version_major/version_minor are read at the correct 4-byte aligned offsets 
+     expected by modern Libretro core binaries.
+    */
     bool depth;
     bool stencil;
     bool bottom_left_origin;
@@ -64,6 +97,9 @@ struct retro_game_geometry { unsigned base_width; unsigned base_height; unsigned
 struct retro_system_timing { double fps; double sample_rate; };
 struct retro_system_av_info { struct retro_game_geometry geometry; struct retro_system_timing timing; };
 struct retro_game_info { const char *path; const void *data; size_t size; const char *meta; };
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* OE_LIBRETRO_H */

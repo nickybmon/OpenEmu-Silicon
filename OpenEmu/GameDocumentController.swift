@@ -125,15 +125,11 @@ class GameDocumentController: NSDocumentController {
     }
     
     fileprivate func setUpGameDocument(_ document: OEGameDocument, display displayDocument: Bool, fullScreen: Bool, completionHandler: ((OEGameDocument?, NSError?) -> Void)?) {
-        #if DEBUG
 
-        #endif
         addDocument(document)
 
         document.setUpGame { success, error in
-            #if DEBUG
 
-            #endif
 
             
             if success {
@@ -151,13 +147,9 @@ class GameDocumentController: NSDocumentController {
     }
     
     override func openDocument(withContentsOf url: URL, display displayDocument: Bool, completionHandler: @escaping (NSDocument?, Bool, Error?) -> Void) {
-        #if DEBUG
 
-        #endif
         super.openDocument(withContentsOf: url, display: false) { document, documentWasAlreadyOpen, error in
-            #if DEBUG
 
-            #endif
             if let document = document as? OEGameDocument {
 
                 let fullScreen = UserDefaults.standard.bool(forKey: OEFullScreenGameWindowKey)
