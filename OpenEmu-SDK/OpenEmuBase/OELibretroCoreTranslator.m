@@ -554,6 +554,18 @@ static bool libretro_environment_cb(unsigned cmd, void *data) {
                         var->value = "disabled";
                         return true;
                     }
+                    // Disable frame-swap delay — this variable makes retro_run block waiting
+                    // for audio to be consumed, causing a deadlock with CoreAudio's IO thread.
+                    if (strcmp(var->key, "reicast_delay_frame_swapping") == 0) {
+                        var->value = "disabled";
+                        return true;
+                    }
+                    // Disable DSP — reduces audio thread pressure and avoids secondary
+                    // audio sync points that can contribute to the CoreAudio deadlock.
+                    if (strcmp(var->key, "reicast_enable_dsp") == 0) {
+                        var->value = "disabled";
+                        return true;
+                    }
                 }
 
                 // PPSSPP Defaults
@@ -1143,7 +1155,6 @@ static void* bridge_dlsym(void *handle, const char *symbol) {
         
         if (self.isHW && _hw_callback.context_reset) {
             NSLog(@"[OELibretro] Calling context_reset for Hardware Accelerated core (on thread with active context)...");
-            fprintf(stderr, "[OELibretro] Calling context_reset for HW core\n");
             _hw_callback.context_reset();
         }
     }
