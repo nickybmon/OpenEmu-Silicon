@@ -97,3 +97,4 @@
 [submodule "Dolphin/dolphin"]
 	path = Dolphin/dolphin
 	url = https://github.com/dolphin-emu/dolphin
+	ignore = untracked
