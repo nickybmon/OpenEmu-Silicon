@@ -195,7 +195,7 @@
   <core
     id="org.openemu.Flycast"
     name="Flycast"
-    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/flycast.xml">
+    appcastURL="https://raw.githubusercontent.com/nickybmon/OpenEmu-Silicon/main/Appcasts/flycast.xml?v=2">
     <description>Dreamcast emulator</description>
     <systems>
       <system id="openemu.system.dc">Dreamcast</system>
