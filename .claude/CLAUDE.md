@@ -202,7 +202,7 @@ Custom commands live in `.claude/commands/`. Invoke with `/command-name`.
 | `/review <PR_NUMBER>` | PR review flow: gh pr checkout, build check, list test behaviors from the PR description, report results |
 | `/new-issue` | Guided issue creation: search for duplicates first, select template, enforce title rules, apply labels |
 | `/triage-issue <N>` | Review a bug report or feature request: check completeness, post a comment asking for missing details/screenshots, apply labels |
-| `/prep-release [X.Y.Z]` | Full release prep: bump version, build check, commit, check release notes, run pre-flight, hand off release script command |
+| `/prep-release [X.Y.Z]` | Full release prep: bump version, build check, commit version bump — then you push the tag to fire the CI workflow |
 
 ---
 
@@ -225,44 +225,63 @@ The difference between a hotfix and a patch release is **urgency and scope**, no
 
 ## Release Process
 
-Releases are built and signed **locally** using `Scripts/release.sh`. There is no CI release workflow — it was removed in April 2026 because it was slower than local builds and introduced signing bugs (missing entitlements, Sparkle signature mismatches).
+Releases run on **GitHub Actions** (`macos-26` hosted runners, Xcode 26.3). Your Mac does not need to be involved. All signing credentials are stored as repo secrets.
 
-### Before running the release script
+There are two independent release workflows:
 
-1. Bump the version in Xcode: `OpenEmu` target → General → Version (e.g. `1.0.4`) and Build Number
-2. Ensure your notarytool credentials are stored: `xcrun notarytool store-credentials OpenEmu`
-3. Ensure `gh` is authenticated: `gh auth status`
+### Full app release (`release.yml`)
 
-### Run the release
+Triggered by pushing a version tag. Use `/prep-release` first to bump the version and run a build check, then push the tag:
 
 ```bash
-# Minimal — appcast entry will have a placeholder description
-./Scripts/release.sh 1.0.4
-
-# With release notes (markdown file → converted to HTML in appcast)
-./Scripts/release.sh 1.0.4 Releases/notes-1.0.4.md
+/prep-release 1.0.7          # bumps Info.plist, build check, commits version bump
+git tag v1.0.7
+git push origin v1.0.7       # fires the workflow automatically
 ```
 
-The script does everything in one shot:
-1. `xcodebuild archive` (Release config, Developer ID signed, hardened runtime)
+The workflow does everything unattended:
+1. Archives (Release config, Developer ID signed, hardened runtime)
 2. Re-signs all binaries inside-out with entitlements, notarizes, staples
-3. Creates the DMG from the stapled `.app`
-4. Runs `sign_update` on that exact DMG to get the EdDSA signature
-5. Prepends a new entry to `appcast.xml` with the correct signature and length
-6. Creates a **draft** GitHub Release and uploads the DMG
-7. Updates `Casks/openemu-silicon.rb` with the new version and DMG SHA256
-8. Commits and pushes the updated `appcast.xml` and Homebrew cask together
+3. Creates the DMG, generates the Sparkle EdDSA signature
+4. Updates `appcast.xml` and `Casks/openemu-silicon.rb`
+5. Commits those changes back to `main`
+6. Creates a **draft** GitHub Release with the DMG attached
 
-### After the script finishes
+When the workflow finishes (~20–30 min), review and publish the draft:
+```bash
+gh release edit vX.Y.Z --draft=false --repo nickybmon/OpenEmu-Silicon
+```
 
-- Review the draft release on GitHub
-- Edit release notes if the script used a placeholder
-- When ready: `gh release edit vX.Y.Z --draft=false --repo nickybmon/OpenEmu-Silicon`
+### Core release (`release-core.yml`)
+
+Ships a single emulator plugin independently of the app. No full app release needed. Triggered manually from the Actions UI or CLI:
+
+```bash
+gh workflow run release-core.yml \
+  --repo nickybmon/OpenEmu-Silicon \
+  -f core_name=Flycast \
+  -f version=2.5
+```
+
+Or use the `/release-core <CoreName> <Version>` slash command, which wraps the above.
+
+The workflow builds the core, signs it, zips it, uploads it to a `cores-vX.Y.Z` prerelease, and commits the updated `Appcasts/<core>.xml` back to `main`. Users see the update on next app launch via `CoreUpdater`.
+
+### Secrets in use
+
+| Secret | Purpose |
+|--------|---------|
+| `DEVELOPER_ID_CERT_BASE64` | Developer ID signing cert (p12, base64) |
+| `DEVELOPER_ID_CERT_PASSWORD` | Cert password |
+| `APPLE_ID` / `APPLE_ID_PASSWORD` / `APPLE_TEAM_ID` | notarytool credentials |
+| `SPARKLE_PRIVATE_KEY` | EdDSA key for Sparkle update signatures |
+| `GH_PAT` | Token for the workflow to push appcast/cask commits back to main |
 
 ### Never do this manually
 
-- Never hand-edit the `sparkle:edSignature` or `length` in `appcast.xml` — always let `sign_update` generate them from the actual DMG that was uploaded
-- Never publish a GitHub Release without confirming the appcast is committed and pushed — the update will fail if the appcast hasn't been updated yet
+- Never hand-edit `sparkle:edSignature` or `length` in any appcast — the workflow generates these from the actual artifact
+- Never publish a GitHub Release without confirming the appcast commit landed on `main` first — Sparkle update checks will fail otherwise
+- `Scripts/release.sh` still exists as a local fallback but is no longer the primary release path
 
 ---
 
