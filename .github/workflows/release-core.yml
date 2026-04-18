@@ -96,6 +96,44 @@ jobs:
           print(f'OK: new version {new} > current {cur}')
           "
 
+      # ── Bump CFBundleVersion in core Info.plist ─────────────────────────────
+      - name: Bump ${{ inputs.core_name }} Info.plist version to ${{ inputs.version }}
+        run: |
+          # Core Info.plists live at <Core>/OpenEmu/Info.plist
+          PLIST="${{ env.CORE }}/OpenEmu/Info.plist"
+          [ -f "$PLIST" ] || {
+            echo "ERROR: Info.plist not found at $PLIST"
+            exit 1
+          }
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ env.VERSION }}" "$PLIST"
+          echo "CORE_PLIST=$PLIST" >> $GITHUB_ENV
+          echo "Set CFBundleVersion = ${{ env.VERSION }} in $PLIST"
+
+      # ── Build main workspace (needed so core can find OpenEmuBase frameworks) ─
+      - name: Build main OpenEmu workspace (Release, arm64)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -workspace OpenEmu-metal.xcworkspace \
+            -scheme OpenEmu \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "${{ env.DERIVED_DATA_PATH }}" \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=AJC82Q6789 \
+            2>&1 | grep -E "^(Build|error:|warning: |FAILED|succeeded)" | tail -20
+
+          FRAMEWORKS_DIR=$(xcodebuild \
+            -workspace OpenEmu-metal.xcworkspace \
+            -scheme OpenEmu \
+            -configuration Release \
+            -derivedDataPath "${{ env.DERIVED_DATA_PATH }}" \
+            -showBuildSettings 2>/dev/null \
+            | grep '^ *BUILT_PRODUCTS_DIR' | awk '{print $3}')
+          echo "FRAMEWORKS_DIR=$FRAMEWORKS_DIR" >> $GITHUB_ENV
+          echo "Main workspace built: $FRAMEWORKS_DIR"
+
       # ── Build core ──────────────────────────────────────────────────────────
       - name: Build ${{ inputs.core_name }} (Release, arm64)
         run: |
@@ -107,10 +145,7 @@ jobs:
             -destination 'generic/platform=macOS' \
             -derivedDataPath "${{ env.DERIVED_DATA_PATH }}" \
             ONLY_ACTIVE_ARCH=YES \
-            FRAMEWORK_SEARCH_PATHS="$(xcodebuild -workspace OpenEmu-metal.xcworkspace \
-              -scheme OpenEmu -configuration Release \
-              -showBuildSettings 2>/dev/null | grep ' BUILT_PRODUCTS_DIR ' | awk '{print $3}' \
-              || echo '')" \
+            FRAMEWORK_SEARCH_PATHS="${{ env.FRAMEWORKS_DIR }}" \
             2>&1 | grep -E "^(Build|error:|warning: |FAILED|succeeded)" | tail -20
 
       # ── Locate built plugin ─────────────────────────────────────────────────
@@ -144,8 +179,11 @@ jobs:
           ZIP_PATH="${{ runner.temp }}/${{ env.CORE }}.oecoreplugin.zip"
           echo "ZIP_PATH=$ZIP_PATH" >> $GITHUB_ENV
 
-          cd "$(dirname "${{ env.PLUGIN }}")"
-          zip -r "$ZIP_PATH" "${{ env.CORE }}.oecoreplugin"
+          # ditto preserves macOS bundle metadata and resource forks;
+          # plain `zip -r` can silently corrupt .oecoreplugin bundles.
+          ditto -c -k --keepParent \
+            "${{ env.PLUGIN }}" \
+            "$ZIP_PATH"
           ZIP_SIZE=$(stat -f%z "$ZIP_PATH")
           echo "ZIP_SIZE=$ZIP_SIZE" >> $GITHUB_ENV
           echo "Zip created: $ZIP_PATH ($ZIP_SIZE bytes)"
@@ -213,7 +251,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add "${{ env.APPCAST_FILE }}"
+          git add "${{ env.APPCAST_FILE }}" "${{ env.CORE_PLIST }}"
           git commit -m \
             "chore: update ${{ env.CORE }} to ${{ env.VERSION }} (${{ env.CORES_TAG }})"
 
