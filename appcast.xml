@@ -5,7 +5,7 @@
     <link>https://github.com/nickybmon/OpenEmu-Silicon/releases</link>
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
-                    <item>
+    <item>
       <title>OpenEmu-Silicon 1.0.6</title>
       <description>
         <![CDATA[
@@ -22,14 +22,14 @@
         </ul>
         ]]>
       </description>
-      <pubDate>Sat, 18 Apr 2026 16:02:14 +0000</pubDate>
+      <pubDate>Sat, 18 Apr 2026 16:21:02 +0000</pubDate>
       <sparkle:minimumSystemVersion>11.0</sparkle:minimumSystemVersion>
       <enclosure
         url="https://github.com/nickybmon/OpenEmu-Silicon/releases/download/v1.0.6/OpenEmu-Silicon.dmg"
         sparkle:version="7"
         sparkle:shortVersionString="1.0.6"
-        sparkle:edSignature="Lnv6RNrcxFYQDzf/M4BFpIWtL/IfTAr+phYUhKbvQebQWzCRbg/UjuEo7imRDpisIg4Lu37vLcAHhVg3unLxAQ=="
-        length="46198966"
+        sparkle:edSignature="wTNqyYLd0DNCHrV1i4o/qi3jH8GSZ87o1QimcrKKHmHJ2/YGpTmRU+NCH1XR2AEF613wtPfpzSwE8IW7jHQqBQ=="
+        length="46199074"
         type="application/octet-stream"/>
     </item>
 <item>
