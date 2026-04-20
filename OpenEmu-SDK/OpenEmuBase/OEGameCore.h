@@ -30,10 +30,11 @@
 #if TARGET_OS_OSX
 #import <Cocoa/Cocoa.h>
 #endif
-#import <OpenEmuBase/OEGameCoreController.h>
 #import <OpenEmuBase/OESystemResponderClient.h>
 #import <OpenEmuBase/OEGeometry.h>
 #import <OpenEmuBase/OEDiffQueue.h>
+
+@class OEGameCoreController, OEGameCore;
 
 /// Primary bridge input protocol — used by all system responders.
 @protocol OEBridgeInputTranslation <NSObject>

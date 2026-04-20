@@ -29,8 +29,8 @@
 #import <OpenEmuBase/OELibretroCoreTranslator.h>
 
 #define RETRO_DEVICE_INDEX_ANALOG_BUTTON 2
-#define RETRO_DEVICE_ID_JOYPAD_L2 10
-#define RETRO_DEVICE_ID_JOYPAD_R2 11
+#define RETRO_DEVICE_ID_JOYPAD_L2 12
+#define RETRO_DEVICE_ID_JOYPAD_R2 13
 
 @implementation OEDCSystemResponder
 static const uint8_t kDCLibretroMap[] = { 4, 5, 6, 7, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 8, 9, 3, 2, 0, 1 };

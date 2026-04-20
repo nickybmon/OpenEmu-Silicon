@@ -1152,7 +1152,7 @@ static void* bridge_dlsym(void *handle, const char *symbol) {
 
         // Snap aspect to a small (num, den) pair with denominator ≤ 16.
         int bestNum = 4, bestDen = 3;
-        float bestErr = INFINITY;
+        float bestErr = FLT_MAX;
         for (int den = 1; den <= 16; den++) {
             int num = (int)lroundf(aspect * den);
             if (num <= 0) continue;
