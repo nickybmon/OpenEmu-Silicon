@@ -64,7 +64,7 @@ final class GameInfoHelper {
                 // ROMs that share the same name across platforms (e.g. .n64 vs .sfc).
                 let romName = url?.lastPathComponent
                 var fallback: [String: Any] = [:]
-                if let ss = ScreenScraperClient.shared.fetchGameInfo(md5: md5, romName: romName, systemIdentifier: systemIdentifier) {
+                if case .success(let ss) = ScreenScraperClient.shared.fetchGameInfo(md5: md5, romName: romName, systemIdentifier: systemIdentifier), let ss = ss {
                     if let boxURL = ss.boxImageURL { fallback["boxImageURL"] = boxURL.absoluteString }
                     if let title = ss.gameTitle   { fallback["gameTitle"] = title }
                     if let desc  = ss.gameDescription { fallback["gameDescription"] = desc }
@@ -200,11 +200,11 @@ final class GameInfoHelper {
                 // FIX: pass full filename (including extension) so ScreenScraper
                 // can differentiate ROMs sharing names across systems.
                 let romName = url?.lastPathComponent
-                if let ss = ScreenScraperClient.shared.fetchGameInfo(
+                if case .success(let ss) = ScreenScraperClient.shared.fetchGameInfo(
                     md5: md5,
                     romName: romName,
                     systemIdentifier: systemIdentifier
-                ) {
+                ), let ss = ss {
                     if let boxURL = ss.boxImageURL {
                         resultDict["boxImageURL"] = boxURL.absoluteString
                     }
