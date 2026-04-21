@@ -54,6 +54,11 @@ final class PrefScreenScraperController: NSViewController {
         updateStatus()
     }
 
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        updateStatus()
+    }
+
     // MARK: - Build UI
 
     private func buildUI() {
@@ -184,9 +189,20 @@ final class PrefScreenScraperController: NSViewController {
 
     private func updateStatus() {
         let username = UserDefaults.standard.string(forKey: "ScreenScraperUsername") ?? ""
-        if !username.isEmpty && ScreenScraperCredentials.hasStoredPassword() {
-            statusLabel.stringValue = "✓  Signed in as \(username)"
-            statusLabel.textColor = NSColor(red: 0.2, green: 0.78, blue: 0.35, alpha: 1)
+        let isSignedIn = !username.isEmpty && ScreenScraperCredentials.hasStoredPassword()
+
+        if isSignedIn {
+            // Show the last fetch error if one occurred, so users know why art lookup failed
+            Task { @MainActor in
+                if let fetchError = ScreenScraperClient.shared.lastFetchError,
+                   let description = fetchError.errorDescription {
+                    self.statusLabel.stringValue = description
+                    self.statusLabel.textColor = NSColor(red: 0.87, green: 0.20, blue: 0.18, alpha: 1)
+                } else {
+                    self.statusLabel.stringValue = "✓  Signed in as \(username)"
+                    self.statusLabel.textColor = NSColor(red: 0.2, green: 0.78, blue: 0.35, alpha: 1)
+                }
+            }
         } else {
             statusLabel.stringValue = "Not signed in — ScreenScraper will be skipped. OpenVGDB and libretro-thumbnails are still active."
             statusLabel.textColor = .secondaryLabelColor
