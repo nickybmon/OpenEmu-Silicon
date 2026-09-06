@@ -162,6 +162,7 @@ final class OEGameDocument: NSDocument {
     
     private var gameCoreManager: GameCoreManager?
     private var cheatSearchWindowController: CheatSearchWindowController?
+    private var browseOnlineCheatsWindowController: BrowseOnlineCheatsWindowController?
     private var retroAchievementsWindowController: NSWindowController?
     @objc dynamic private(set) var retroAchievementsSessionInfo: [String: Any]?
     private var retroAchievementsSuppressedUnlockIDs = Set<UInt32>()
@@ -660,9 +661,12 @@ final class OEGameDocument: NSDocument {
                 self.didShowRetroAchievementsBootPlacard = false
                 
                 self.gameCoreManager = nil
+                self.pausedByGoingToBackground = false
 
                 self.cheatSearchWindowController?.close()
                 self.cheatSearchWindowController = nil
+                self.browseOnlineCheatsWindowController?.close()
+                self.browseOnlineCheatsWindowController = nil
 
                 if let lastPlayStartDate = self.lastPlayStartDate {
                     self.rom.addTimeIntervalToPlayTime(abs(lastPlayStartDate.timeIntervalSinceNow))
@@ -1205,6 +1209,12 @@ final class OEGameDocument: NSDocument {
                 }
                 return
             }
+            // A resume arriving during or after teardown (a window regaining focus as the
+            // game window closes) would otherwise flip the status back to .playing, leaving
+            // the document "edited" with no core behind it.
+            if !pauseEmulation && (emulationStatus == .terminating || emulationStatus == .notSetup) {
+                return
+            }
             if pauseEmulation {
                 if emulationStatus == .playing && isHardcoreModeEnabled && !retroAchievementsHardcorePausePreflightSatisfied {
                     showRetroAchievementsPauseBlockedToast(framesRemaining: 0)
@@ -1473,6 +1483,8 @@ final class OEGameDocument: NSDocument {
             }
             
             self.setUpGameCoreManager(using: plugin) {
+                self.validateCheatCompatibility()
+                self.browseOnlineCheatsWindowController?.resetForCoreChange()
                 self.startEmulation()
             }
         }
@@ -1634,6 +1646,10 @@ final class OEGameDocument: NSDocument {
         return corePlugin.supportsCheatSearch(forSystemIdentifier: systemPlugin.systemIdentifier)
     }
 
+    var supportsOnlineCheats: Bool {
+        return CheatDatabaseService.shared.supportsSystem(systemPlugin.systemIdentifier)
+    }
+
     func fetchReadableMemoryRegions(completionHandler block: @escaping ([OEMemoryRegionDescriptor]) -> Void) {
         gameCoreManager?.readableMemoryRegionDescriptors(completionHandler: block)
     }
@@ -1645,23 +1661,66 @@ final class OEGameDocument: NSDocument {
         cheatSearchWindowController?.showWindow(self)
     }
 
+    @IBAction func browseOnlineCheats(_ sender: Any?) {
+        if browseOnlineCheatsWindowController == nil {
+            browseOnlineCheatsWindowController = BrowseOnlineCheatsWindowController(document: self)
+        }
+        browseOnlineCheatsWindowController?.showWindow(self)
+    }
+
     func addCheatFromSearch(code: String, type: String, name: String, enabled: Bool) {
         let cheat = Cheat(code: code, type: type, name: name)
-        cheat.isUserAdded = true
         if enabled {
             cheat.isEnabled = true
             setCheat(cheat)
         }
         cheats.append(cheat)
         saveUserCheats()
+        validateCheatCompatibility()
+    }
+
+    /// `cheatSource` (the provider name) is what marks this as Browse Online Cheats-imported,
+    /// distinguishing it from cheats added manually or via Cheat Search.
+    func addImportedCheat(code: String, name: String, providerName: String) {
+        let cheat = Cheat(code: code, type: OECheatTypeGameShark, name: name, cheatSource: providerName)
+        cheat.isEnabled = true
+        setCheat(cheat)
+        cheats.append(cheat)
+        saveUserCheats()
+        validateCheatCompatibility()
+    }
+
+    /// Only removes a cheat that was itself imported, so a matching manual/Cheat Search entry is never touched.
+    func removeImportedCheat(code: String) {
+        let key = CheatFeedbackService.key(for: code)
+        guard let index = cheats.firstIndex(where: { $0.cheatSource != nil && CheatFeedbackService.key(for: $0.code) == key })
+        else { return }
+
+        let cheat = cheats[index]
+        if cheat.isEnabled {
+            gameCoreManager?.setCheat(cheat.code, withType: cheat.type, enabled: false)
+        }
+        cheats.remove(at: index)
+        saveUserCheats()
+        promptCheatRemovalFeedback(code: cheat.code)
     }
     
     /// In order to load cheats, we need the core plugin and the ROM to be set.
     private func loadCheats() {
-        if supportsCheats,
-           let md5Hash = rom.md5Hash {
-            let cheatsXML = Cheats(md5Hash: md5Hash)
-            cheats = cheatsXML.allCheats + loadUserCheats()
+        if supportsCheats {
+            cheats = loadUserCheats()
+            validateCheatCompatibility()
+        }
+    }
+
+    /// Marks cheats as incompatible if the current core can't handle their code format.
+    private func validateCheatCompatibility() {
+        let systemID = systemPlugin.systemIdentifier
+        let coreID = corePlugin.bundleIdentifier
+        for cheat in cheats {
+            cheat.isCompatibleWithCore = CheatCodeValidator.isValid(
+                code: cheat.code, systemIdentifier: systemID, coreIdentifier: coreID
+            )
         }
     }
 
@@ -1686,8 +1745,7 @@ final class OEGameDocument: NSDocument {
 
     private func saveUserCheats() {
         guard let url = userCheatsFileURL else { return }
-        let userCheats = cheats.filter(\.isUserAdded)
-        if let data = try? JSONEncoder().encode(userCheats) {
+        if let data = try? JSONEncoder().encode(cheats) {
             try? data.write(to: url, options: .atomic)
         }
     }
@@ -1750,7 +1808,6 @@ final class OEGameDocument: NSDocument {
             }
 
             let cheat = Cheat(code: code, type: "GameShark", name: name)
-            cheat.isUserAdded = true
 
             if shouldEnable {
                 cheat.isEnabled = true
@@ -1759,6 +1816,7 @@ final class OEGameDocument: NSDocument {
 
             cheats.append(cheat)
             saveUserCheats()
+            validateCheatCompatibility()
             return
         }
     }
@@ -1940,7 +1998,7 @@ final class OEGameDocument: NSDocument {
                 offset += 1
             }
         }
-        return codes.joined(separator: "\n")
+        return codes.joined(separator: "+")
     }
 
     // MARK: N64 GameShark (TTXXXXXX YYYY)
@@ -2020,7 +2078,7 @@ final class OEGameDocument: NSDocument {
 
         cheat.isEnabled.toggle()
         setCheat(cheat)
-        if cheat.isUserAdded { saveUserCheats() }
+        saveUserCheats()
     }
 
     /// expects `sender.representedObject` to be a `Cheat` object
@@ -2053,7 +2111,6 @@ final class OEGameDocument: NSDocument {
 
             let edited = Cheat(code: newCode, type: cheat.type, name: alert.otherStringValue)
             edited.isEnabled = cheat.isEnabled
-            edited.isUserAdded = true
 
             if cheat.isEnabled {
                 gameCoreManager?.setCheat(cheat.code, withType: cheat.type, enabled: false)
@@ -2078,6 +2135,72 @@ final class OEGameDocument: NSDocument {
         }
         cheats.remove(at: index)
         saveUserCheats()
+        // Only imported cheats have known-good/bad feedback worth asking about — manual/Cheat Search
+        // codes aren't sourced from a shared database, so there's nothing to report back against.
+        if cheat.cheatSource != nil {
+            promptCheatRemovalFeedback(code: cheat.code)
+        }
+    }
+
+    /// Shared by every place a cheat gets removed — the menu's Remove item and Browse Online
+    /// Cheats' Remove button — so the "did it work" report is asked consistently either way.
+    func promptCheatRemovalFeedback(code: String) {
+        guard let md5 = rom.md5Hash else { return }
+
+        let existingStatuses = CheatFeedbackService.shared.statuses(forMD5: md5,
+                                                                    systemIdentifier: systemPlugin.systemIdentifier,
+                                                                    coreIdentifier: corePlugin.bundleIdentifier,
+                                                                    coreVersion: corePlugin.version)
+        // Already reported on for this core build — don't ask again for a value the user already gave.
+        guard existingStatuses[CheatFeedbackService.key(for: code)] == nil else { return }
+
+        let alert = OEAlert()
+        alert.messageText = NSLocalizedString("Cheat Removed", comment: "Cheat removal feedback dialog title")
+        alert.informativeText = NSLocalizedString("Did this cheat code work for you?", comment: "Cheat removal feedback dialog question")
+        // Removing (rather than just disabling) a working cheat is unusual, so "No" gets the default/rightmost slot as the likely answer.
+        alert.defaultButtonTitle = NSLocalizedString("No", comment: "Cheat removal feedback dialog option")
+        alert.alternateButtonTitle = NSLocalizedString("Yes", comment: "Cheat removal feedback dialog option")
+        alert.alternateButtonColor = NSColor.systemGreen.blended(withFraction: 0.65, of: .systemGray)?.withAlphaComponent(0.4)
+        alert.otherButtonTitle = NSLocalizedString("I don't know", comment: "Cheat removal feedback dialog option")
+
+        let status: CheatFeedbackStatus
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: status = .doesNotWork
+        case .alertSecondButtonReturn: status = .works
+        default: status = .unknown
+        }
+
+        CheatFeedbackService.shared.setStatus(status,
+                                             forCode: code,
+                                             md5: md5,
+                                             systemIdentifier: systemPlugin.systemIdentifier,
+                                             coreIdentifier: corePlugin.bundleIdentifier,
+                                             coreVersion: corePlugin.version)
+    }
+
+    /// expects `sender.representedObject` to be a `Cheat` object
+    @IBAction func setCheatStatusWorks(_ sender: AnyObject) {
+        setCheatFeedbackStatus(.works, sender: sender)
+    }
+
+    /// expects `sender.representedObject` to be a `Cheat` object
+    @IBAction func setCheatStatusDoesNotWork(_ sender: AnyObject) {
+        setCheatFeedbackStatus(.doesNotWork, sender: sender)
+    }
+
+    /// expects `sender.representedObject` to be a `Cheat` object
+    @IBAction func setCheatStatusUnknown(_ sender: AnyObject) {
+        setCheatFeedbackStatus(.unknown, sender: sender)
+    }
+
+    private func setCheatFeedbackStatus(_ status: CheatFeedbackStatus, sender: AnyObject) {
+        guard let cheat = sender.representedObject as? Cheat, let md5 = rom.md5Hash else { return }
+        CheatFeedbackService.shared.setStatus(status,
+                                             forCode: cheat.code,
+                                             md5: md5,
+                                             systemIdentifier: systemPlugin.systemIdentifier,
+                                             coreIdentifier: corePlugin.bundleIdentifier,
+                                             coreVersion: corePlugin.version)
     }
 
     func setCheat(_ cheat: Cheat) {
@@ -2403,7 +2526,10 @@ final class OEGameDocument: NSDocument {
             supportsSaveStates,
             emulationStatus.rawValue > EmulationStatus.starting.rawValue,
             let rom = rom,
-            let core = corePlugin
+            let core = corePlugin,
+            // Without this the optional chaining below would skip the closure and the
+            // handler would never run, stranding canClose() and wedging the window shut.
+            let gameCoreManager = gameCoreManager
         else {
             handler?()
             return
@@ -2417,7 +2543,7 @@ final class OEGameDocument: NSDocument {
         }
         
         SentryService.addBreadcrumb(message: "Save state written: \(stateName)", category: "savestate")
-        gameCoreManager?.saveStateToFile(at: temporaryStateFileURL) { success, error in
+        gameCoreManager.saveStateToFile(at: temporaryStateFileURL) { success, error in
             if !success {
                 handler?()
                 return
